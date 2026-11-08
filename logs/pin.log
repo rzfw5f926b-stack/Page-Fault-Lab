@@ -1,0 +1,32 @@
+2026-11-08 18:13:46 pin test start (swap used 981MB, free 76%)
+2026-11-08 18:13:46 cooldown 1200 s
+2026-11-08 18:33:46 cool ok, level=0
+2026-11-08 18:33:47 start server pin_res_base RESIDENCY=1 PIN_OT=[] (wired before: (2268M, free 78%)
+2026-11-08 18:36:53 server ready after 181s
+2026-11-08 18:36:53 footprint:     phys_footprint: 566 MB; wired: (5332M; free 64%
+0.00.302.662 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2026-11-08 18:36:53 cooldown 300 s
+2026-11-08 18:41:53 cool ok, level=0
+2026-11-08 18:48:58 bench pin_res_base exit=0 : pin_res_base: prompt 1895 in 200s | gen 96 @ 0.425 t/s | draft None acc None | SSD 100721.6 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/pin_res_base_20261108_184858.jsonl 
+2026-11-08 18:48:58 swapouts since start: +0 pages, swap used 981 MB (start 981)
+2026-11-08 18:48:58 cooldown 1200 s
+2026-11-08 19:08:58 cool ok, level=0
+2026-11-08 19:08:58 start server pin_res_2 RESIDENCY=1 PIN_OT=[blk\.[01]\.ffn_.*_exps=MTL0] (wired before: (2365M, free 78%)
+2026-11-08 19:12:01 server ready after 178s
+2026-11-08 19:12:02 footprint:     phys_footprint: 566 MB; wired: (8517M; free 48%
+0.00.368.068 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2026-11-08 19:12:02 cooldown 300 s
+2026-11-08 19:17:02 cool ok, level=0
+2026-11-08 19:24:12 bench pin_res_2 exit=0 : pin_res_2: prompt 1895 in 196s | gen 96 @ 0.406 t/s | draft None acc None | SSD 104607.8 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/pin_res_2_20261108_192412.jsonl 
+2026-11-08 19:24:12 swapouts since start: +0 pages, swap used 981 MB (start 981)
+2026-11-08 19:24:12 cooldown 1200 s
+2026-11-08 19:44:12 cool ok, level=0
+2026-11-08 19:44:12 start server pin_res_4 RESIDENCY=1 PIN_OT=[blk\.[0-3]\.ffn_.*_exps=MTL0] (wired before: (2450M, free 75%)
+2026-11-08 19:47:14 server ready after 176s
+2026-11-08 19:47:14 footprint:     phys_footprint: 566 MB; wired: (12G; free 32%
+0.00.413.298 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2026-11-08 19:47:14 cooldown 300 s
+2026-11-08 19:52:14 cool ok, level=0
+2026-11-08 20:00:14 bench pin_res_4 exit=0 : pin_res_4: prompt 1895 in 186s | gen 96 @ 0.323 t/s | draft None acc None | SSD 117184.7 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/pin_res_4_20261108_200014.jsonl 
+2026-11-08 20:00:14 swapouts since start: +0 pages, swap used 981 MB (start 981)
+2026-11-08 20:00:14 end: 全部完成

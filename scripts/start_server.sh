@@ -8,8 +8,13 @@ ROOT="/Volumes/LLM SSD/Flashback"
 LABEL="$1"; THREADS="${2:--1}"; UB="${3:-512}"
 EXTRA="${EXTRA:-}"   # 額外參數（例如推測解碼），不加引號展開
 CTX="${CTX:-4096}"; BATCH="${BATCH:-2048}"   # 可用環境變數覆寫上下文與邏輯批次
-export GGML_METAL_NO_RESIDENCY=1
+# 第 4 項：PIN_OT 指定要固定到 GPU 的專家層 -ot 規則（放在 exps=CPU 前面，第一個符合的規則生效）。
+# RESIDENCY=1 時不設定 GGML_METAL_NO_RESIDENCY，讓 Metal 用 residency set 把 GPU 緩衝區常駐。
+PIN_OT="${PIN_OT:-}"
+set --
+[ -n "$PIN_OT" ] && set -- -ot "$PIN_OT"
+[ "${RESIDENCY:-0}" = 1 ] || export GGML_METAL_NO_RESIDENCY=1
 exec llama-server -m "$ROOT/models/gpt-oss-120b-MXFP4.gguf" \
-  -ngl 999 -ot "exps=CPU" --no-repack -c "$CTX" -t "$THREADS" -b "$BATCH" -ub "$UB" --no-warmup \
+  -ngl 999 "$@" -ot "exps=CPU" --no-repack -c "$CTX" -t "$THREADS" -b "$BATCH" -ub "$UB" --no-warmup \
   --host 127.0.0.1 --port 8080 -np 1 $EXTRA \
   > "$ROOT/logs/server_${LABEL}_$(date +%Y%m%d_%H%M%S).log" 2>&1
