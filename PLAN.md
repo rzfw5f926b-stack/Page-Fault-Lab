@@ -168,13 +168,18 @@
 
 **散熱條件：** 11-08 白天沒有風扇時，熱保護跳脫 4 次。15:17 之後 Air 和 SSD 放在空氣清淨機出風口上，之後全程熱壓力 0。
 
-## 下一步：Mac mini（32GB，內建 SSD）
+## 下一步：Mac mini（M6、32GB，內建 SSD）
 
-1. 複製 `models/`、`scripts/`、`prompts/`，用 `shasum -a 256` 核對雜湊，再把腳本裡的 `ROOT` 改成新的路徑。
-2. **Qwen3-Coder-30B-A3B：** 先試 `EXPS=GPU`，不行再改 `exps=CPU`。跑 `spec_bench`、`agent_bench`（`--fmt chatml`）和 `quality_bench`，和 Air 的數字比較。
-3. **opencode 實測（第 5 項）：** 用 Qwen 和 20b 各做一個多檔案任務，記錄每輪等待時間和是否完成。準備比 quality_bench 更難的題目。
-4. **（選擇性）120b：** 用 `-ub 8192`、`--spec-type ngram-mod` 跑 `agent_bench`，確認每輪等待能不能壓到 1～2 分鐘以內。
-5. **（選擇性）補第 2 項：** `-ub 4096`、`-ub 2048` 在 16k 上下文的數據。
+先跑 `scripts/run_mini.sh --dry-run` 檢查環境，再放背景跑 `scripts/run_mini.sh`。腳本會依序做第 2～4 步；缺少依賴的階段會跳過並把原因寫進 `logs/mini.log`，不會自己下載或安裝。
+
+1. 複製 `models/`、`scripts/`、`prompts/`，用 `shasum -a 256` 核對雜湊。`run_mini.sh` 會自己算出專案路徑，不用改 `ROOT`；單獨跑其他腳本時要設 `FLASHBACK_ROOT`。
+2. **Qwen3-Coder-30B-A3B（llama.cpp）：** 先試 `EXPS=GPU`，不行再改 `exps=CPU`。跑 `spec_bench`、`agent_bench`（`--fmt chatml`）和 `quality_bench`，和 Air 的數字比較。
+3. **Qwen3-Coder-30B-A3B（MLX）：** 同一個模型的 MLX 版，和第 2 步比生成速度、首個 token 時間和長提示處理時間。M6 的 GPU 每核都有 Neural Accelerator，主要看提示處理能不能變快。比較時也要記下 MLX 沒有 ngram-mod 這類推測解碼的損失。需要 `scripts/stream_bench.py`（尚未實作），以及裝在專案內 `.venv-mlx/` 的 mlx-lm 和 MLX 版模型（下載前先確認）。
+4. **opencode 實測（第 5 項）：** 用 Qwen 和 20b 各做一個多檔案任務，記錄每輪等待時間、工具呼叫是否正常和是否完成。需要 `tasks/` 和 `scripts/run_opencode_tasks.sh`（尚未實作），題目要比 quality_bench 更難。
+5. **（選擇性）120b：** 用 `-ub 8192`、`--spec-type ngram-mod` 跑 `agent_bench`，確認每輪等待能不能壓到 1～2 分鐘以內。
+6. **（選擇性）補第 2 項：** `-ub 4096`、`-ub 2048` 在 16k 上下文的數據。
+
+Core AI 目前沒有 opencode 能接的伺服器，先不列入測試。
 
 ## 風險與注意事項
 

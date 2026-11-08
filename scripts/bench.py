@@ -8,11 +8,13 @@
 """
 import argparse, json, os, re, subprocess, sys, time, urllib.request
 
-ROOT = "/Volumes/LLM SSD/Flashback"
+ROOT = os.environ.get("FLASHBACK_ROOT", "/Volumes/LLM SSD/Flashback")
 PROMPTS = ["qa_zh", "code", "essay_zh"]
 
 
 def ssd_whole_disk():
+    if os.environ.get("DISK"):  # Mac mini 用內建 SSD，沒有這個外接卷宗，由 run_mini.sh 指定
+        return os.environ["DISK"]
     out = subprocess.run(["diskutil", "info", "/Volumes/LLM SSD"], capture_output=True, text=True).stdout
     # APFS 卷宗在合成容器上，要找實體磁碟：用 Physical Store 往回推
     m = re.search(r"APFS Physical Store:\s+(disk\d+)", out)

@@ -4,7 +4,7 @@
 # --no-repack：預防 CPU repack 把專家層複製進一般記憶體。
 # GGML_METAL_NO_RESIDENCY=1：與試跑設定一致（試跑時用來排查啟動預讀，保留以維持可比性）。
 # 注意：llama.cpp 啟動時會對整個檔案 MADV_WILLNEED 預讀（約 2 分 40 秒），冷啟動要在載入完成後 sudo purge。
-ROOT="/Volumes/LLM SSD/Flashback"
+ROOT="${FLASHBACK_ROOT:-/Volumes/LLM SSD/Flashback}"
 LABEL="$1"; THREADS="${2:--1}"; UB="${3:-512}"
 EXTRA="${EXTRA:-}"   # 額外參數（例如推測解碼），不加引號展開
 CTX="${CTX:-4096}"; BATCH="${BATCH:-2048}"   # 可用環境變數覆寫上下文與邏輯批次
