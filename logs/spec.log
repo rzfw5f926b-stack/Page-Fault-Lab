@@ -12,3 +12,61 @@
 2026-11-08 14:07:36 cooldown 1800 s
 2026-11-08 14:37:36 cool ok, level=0
 2026-11-08 14:37:36 cooldown 1200 s
+2026-11-08 14:57:36 cool ok, level=0
+2026-11-08 14:57:37 start server spec_ngram_simple EXTRA=[--spec-type ngram-simple]
+2026-11-08 15:00:42 server ready after 180s
+2026-11-08 15:00:42 footprint:     phys_footprint: 564 MB
+2026-11-08 15:00:42 cooldown 300 s
+2026-11-08 15:05:42 cool ok, level=0
+2026-11-08 15:08:54 bench spec_ngram_simple exit=1 : Traceback (most recent call last):   File "/Volumes/LLM SSD/Flashback/scripts/spec_bench.py", line 22, in <module>     r = post(a.url + "/completion", {"prompt": prompt, "n_predict": a.n, "ignore_eos": True,                                       "cache_prompt": True, "temperature": 0.0, "seed": 42})   File "/Volumes/LLM SSD/Flashback/scripts/bench.py", line 40, in post     with urllib.request.urlopen(req, timeout=timeout) as r:          ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen     return opener.open(url, data, timeout)            ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 487, in open     response = self._open(req, data)   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 504, in _open     result = self._call_chain(self.handle_open, protocol, protocol +                               '_open', req)   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain     result = func(*args)   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 1350, in http_open     return self.do_open(http.client.HTTPConnection, req)            ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 1325, in do_open     r = h.getresponse()   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 1459, in getresponse     response.begin()     ~~~~~~~~~~~~~~^^   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 336, in begin     version, status, reason = self._read_status()                               ~~~~~~~~~~~~~~~~~^^   File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 305, in _read_status     raise RemoteDisconnected("Remote end closed connection without"                              " response") http.client.RemoteDisconnected: Remote end closed connection without response 
+2026-11-08 15:08:54 swapouts since start: +3137 pages
+2026-11-08 15:08:54 spec_ngram_simple 因熱保護中止
+2026-11-08 15:08:54 cooldown 1800 s
+2026-11-08 15:17:02 ===== rerun with external fan (air purifier) =====
+2026-11-08 15:17:02 spec test start
+2026-11-08 15:17:02 cooldown 1200 s
+2026-11-08 15:17:45 cool ok, level=0
+2026-11-08 15:17:45 start server spec_none EXTRA=[]
+2026-11-08 15:20:50 server ready after 178s
+2026-11-08 15:20:50 footprint:     phys_footprint: 564 MB
+2026-11-08 15:20:50 cooldown 300 s
+2026-11-08 15:25:50 cool ok, level=0
+2026-11-08 15:33:17 bench spec_none exit=0 : spec_none: prompt 1895 in 214s | gen 96 @ 0.406 t/s | draft None acc None | SSD 106789.0 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/spec_none_20261108_153317.jsonl 
+2026-11-08 15:33:17 swapouts since start: +0 pages
+2026-11-08 15:33:17 cooldown 1200 s
+2026-11-08 15:53:17 cool ok, level=0
+2026-11-08 15:53:17 start server spec_ngram_simple EXTRA=[--spec-type ngram-simple]
+2026-11-08 15:56:15 server ready after 172s
+2026-11-08 15:56:15 footprint:     phys_footprint: 565 MB
+2026-11-08 15:56:15 cooldown 300 s
+2026-11-08 16:01:15 cool ok, level=0
+2026-11-08 16:08:03 bench spec_ngram_simple exit=0 : spec_ngram_simple: prompt 1895 in 213s | gen 96 @ 0.487 t/s | draft 85 acc 85 | SSD 97677.9 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/spec_ngram_simple_20261108_160803.jsonl 
+2026-11-08 16:08:03 swapouts since start: +0 pages
+2026-11-08 16:08:03 cooldown 1200 s
+2026-11-08 16:28:03 cool ok, level=0
+2026-11-08 16:28:03 start server spec_ngram_mod EXTRA=[--spec-type ngram-mod]
+2026-11-08 16:31:08 server ready after 179s
+2026-11-08 16:31:09 footprint:     phys_footprint: 579 MB
+2026-11-08 16:31:09 cooldown 300 s
+2026-11-08 16:36:09 cool ok, level=0
+2026-11-08 16:42:46 bench spec_ngram_mod exit=0 : spec_ngram_mod: prompt 1895 in 208s | gen 96 @ 0.502 t/s | draft 73 acc 73 | SSD 94741.8 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/spec_ngram_mod_20261108_164246.jsonl 
+2026-11-08 16:42:47 swapouts since start: +0 pages
+2026-11-08 16:42:47 cooldown 1200 s
+2026-11-08 17:02:47 cool ok, level=0
+2026-11-08 17:02:47 start server spec_eagle3 EXTRA=[--spec-type draft-eagle3 -md models/eagle3-gpt-oss-120b-Q8_0.gguf]
+2026-11-08 17:05:45 server ready after 172s
+2026-11-08 17:05:45 footprint:     phys_footprint: 657 MB
+2026-11-08 17:05:45 cooldown 300 s
+2026-11-08 17:10:45 cool ok, level=0
+2026-11-08 17:19:59 bench spec_eagle3 exit=0 : spec_eagle3: prompt 1895 in 235s | gen 96 @ 0.298 t/s | draft 75 acc 69 | SSD 127911.0 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/spec_eagle3_20261108_171959.jsonl 
+2026-11-08 17:19:59 swapouts since start: +0 pages
+2026-11-08 17:19:59 cooldown 1200 s
+2026-11-08 17:39:59 cool ok, level=0
+2026-11-08 17:39:59 start server spec_draft20b EXTRA=[--spec-type draft-simple -md models/gpt-oss-20b-MXFP4.gguf -ngld all]
+2026-11-08 17:43:57 server ready after 230s
+2026-11-08 17:43:57 footprint:     phys_footprint: 896 MB
+2026-11-08 17:43:57 cooldown 300 s
+2026-11-08 17:48:57 cool ok, level=0
+2026-11-08 18:09:38 bench spec_draft20b exit=0 : spec_draft20b: prompt 1895 in 260s | gen 96 @ 0.097 t/s | draft 71 acc 71 | SSD 359303.4 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/spec_draft20b_20261108_180938.jsonl 
+2026-11-08 18:09:38 swapouts since start: +0 pages
+2026-11-08 18:09:38 end: 全部完成

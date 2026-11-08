@@ -1,0 +1,1 @@
+spec_ngram_simple: prompt 1895 in 213s | gen 96 @ 0.487 t/s | draft 85 acc 85 | SSD 97677.9 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/spec_ngram_simple_20261108_160803.jsonl

@@ -1,0 +1,32 @@
+0.00.142.562 I srv  llama_server: initializing ...
+0.00.142.571 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.144.924 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.147.425 I srv    load_model: loading model '/Volumes/LLM SSD/Flashback/models/gpt-oss-120b-MXFP4.gguf'
+0.00.405.454 E llama_init_from_model: failed to initialize the context: eagle3 requires ctx_other to be set (this warning is normal during memory fitting)
+0.00.417.950 W operator(): failed to measure the memory of the extra model, fitting without it: failed to create llama_context from model
+0.00.505.219 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.00.505.380 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.00.505.649 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.00.505.887 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.00.506.002 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.00.519.851 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2.37.740.974 I cmn          init: llama threadpool init, n_threads = 10
+2.37.741.422 I common_speculative_init_result: loading draft model 'models/eagle3-gpt-oss-120b-Q8_0.gguf'
+2.37.839.056 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+2.37.839.209 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+2.37.839.452 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+2.37.839.666 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+2.37.839.770 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+2.56.888.701 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'false'
+2.57.580.078 I srv  server_run_i: model loaded
+2.57.580.085 I srv  server_on_li: listening on http://127.0.0.1:8080
+7.58.250.217 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+7.58.250.235 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+11.33.479.378 I slot print_timing: id  0 | task 0 | prompt processing, n_tokens =   1891, progress = 1.00, t = 211.63 s / 8.94 tokens per second
+17.11.977.521 I slot print_timing: id  0 | task 0 | prompt eval time =  234935.44 ms /  1895 tokens (  123.98 ms per token,     8.07 tokens per second)
+17.11.977.524 I slot print_timing: id  0 | task 0 |        eval time =  318789.54 ms /    96 tokens ( 3355.68 ms per token,     0.30 tokens per second)
+17.11.977.524 I slot print_timing: id  0 | task 0 |       total time =  553724.98 ms /  1991 tokens
+17.11.977.525 I slot print_timing: id  0 | task 0 |    graphs reused =         24
+17.11.977.525 I slot print_timing: id  0 | task 0 |   graph reallocs =          1    /     0        (same size) / (changed size)
+17.11.977.856 I slot print_timing: id  0 | task 0 | draft acceptance = 0.92000 (   69 accepted /    75 generated), mean len =  3.76
+17.11.979.375 I slot      release: id  0 | task 0 | stop processing: n_tokens = 1990, truncated = 0

@@ -1,0 +1,30 @@
+0.00.148.584 I srv  llama_server: initializing ...
+0.00.148.593 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.150.354 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.152.807 I srv    load_model: loading model '/Volumes/LLM SSD/Flashback/models/gpt-oss-120b-MXFP4.gguf'
+0.00.515.803 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.00.515.969 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.00.516.234 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.00.516.471 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.00.516.587 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.00.530.442 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2.40.665.211 I cmn          init: llama threadpool init, n_threads = 10
+2.40.665.697 I common_speculative_init_result: loading draft model 'models/gpt-oss-20b-MXFP4.gguf'
+2.40.764.246 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+2.40.764.401 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+2.40.764.646 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+2.40.764.862 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+2.40.764.969 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+3.30.231.044 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'false'
+3.57.260.504 I srv  server_run_i: model loaded
+3.57.260.509 I srv  server_on_li: listening on http://127.0.0.1:8080
+8.58.222.910 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+8.58.222.936 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+12.23.748.509 I slot print_timing: id  0 | task 0 | prompt processing, n_tokens =   1891, progress = 1.00, t = 205.18 s / 9.22 tokens per second
+29.38.738.817 I slot print_timing: id  0 | task 0 | prompt eval time =  260482.05 ms /  1895 tokens (  137.46 ms per token,     7.27 tokens per second)
+29.38.738.821 I slot print_timing: id  0 | task 0 |        eval time =  980033.38 ms /    96 tokens (10316.14 ms per token,     0.10 tokens per second)
+29.38.738.821 I slot print_timing: id  0 | task 0 |       total time = 1240515.43 ms /  1991 tokens
+29.38.738.822 I slot print_timing: id  0 | task 0 |    graphs reused =         22
+29.38.738.822 I slot print_timing: id  0 | task 0 |   graph reallocs =          1    /     0        (same size) / (changed size)
+29.38.739.142 I slot print_timing: id  0 | task 0 | draft acceptance = 1.00000 (   71 accepted /    71 generated), mean len =  3.96
+29.38.740.506 I slot      release: id  0 | task 0 | stop processing: n_tokens = 1990, truncated = 0

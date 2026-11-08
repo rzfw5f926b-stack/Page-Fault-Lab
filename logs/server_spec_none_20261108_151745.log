@@ -1,0 +1,23 @@
+0.00.125.992 I srv  llama_server: initializing ...
+0.00.126.000 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.127.500 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.129.895 I srv    load_model: loading model '/Volumes/LLM SSD/Flashback/models/gpt-oss-120b-MXFP4.gguf'
+0.00.357.919 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.00.358.086 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.00.358.335 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.00.358.551 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.00.358.656 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.00.372.373 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2.46.604.517 I cmn          init: llama threadpool init, n_threads = 10
+3.03.846.104 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'false'
+3.03.852.064 I srv  server_run_i: model loaded
+3.03.852.067 I srv  server_on_li: listening on http://127.0.0.1:8080
+8.04.517.578 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+8.04.517.592 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+11.20.355.989 I slot print_timing: id  0 | task 0 | prompt processing, n_tokens =   1891, progress = 1.00, t = 195.84 s / 9.66 tokens per second
+15.31.781.473 I slot print_timing: id  0 | task 0 | prompt eval time =  213545.51 ms /  1895 tokens (  112.69 ms per token,     8.87 tokens per second)
+15.31.781.476 I slot print_timing: id  0 | task 0 |        eval time =  233718.23 ms /    96 tokens ( 2460.19 ms per token,     0.41 tokens per second)
+15.31.781.477 I slot print_timing: id  0 | task 0 |       total time =  447263.73 ms /  1991 tokens
+15.31.781.477 I slot print_timing: id  0 | task 0 |    graphs reused =         94
+15.31.781.477 I slot print_timing: id  0 | task 0 |   graph reallocs =          0    /     0        (same size) / (changed size)
+15.31.782.237 I slot      release: id  0 | task 0 | stop processing: n_tokens = 1990, truncated = 0
