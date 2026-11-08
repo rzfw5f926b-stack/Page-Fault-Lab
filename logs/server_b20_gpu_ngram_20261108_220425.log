@@ -1,0 +1,22 @@
+0.00.058.626 I srv  llama_server: initializing ...
+0.00.058.636 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.061.063 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.063.693 I srv    load_model: loading model '/Volumes/LLM SSD/Flashback/models/gpt-oss-20b-MXFP4.gguf'
+0.00.290.772 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.00.290.982 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.00.291.282 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.00.291.535 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.00.291.660 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.10.090.311 I cmn          init: llama threadpool init, n_threads = 10
+0.19.604.564 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'false'
+0.19.616.427 I srv  server_run_i: model loaded
+0.19.616.430 I srv  server_on_li: listening on http://127.0.0.1:8080
+5.21.163.282 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+5.21.163.296 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+5.24.492.910 I slot print_timing: id  0 | task 0 | prompt eval time =    2535.82 ms /  1895 tokens (    1.34 ms per token,   747.29 tokens per second)
+5.24.492.912 I slot print_timing: id  0 | task 0 |        eval time =     793.66 ms /    96 tokens (    8.35 ms per token,   119.70 tokens per second)
+5.24.492.912 I slot print_timing: id  0 | task 0 |       total time =    3329.48 ms /  1991 tokens
+5.24.492.912 I slot print_timing: id  0 | task 0 |    graphs reused =         19
+5.24.492.913 I slot print_timing: id  0 | task 0 |   graph reallocs =          0    /     0        (same size) / (changed size)
+5.24.492.926 I slot print_timing: id  0 | task 0 | draft acceptance = 1.00000 (   73 accepted /    73 generated), mean len = 37.50
+5.24.493.529 I slot      release: id  0 | task 0 | stop processing: n_tokens = 1990, truncated = 0

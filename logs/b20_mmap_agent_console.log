@@ -1,0 +1,6 @@
+SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/b20_mmap_agent_20261108_214202.jsonl
+t1_long      prompt 2951 new (+0 cached) in 8s | gen 64 @ 18.41 t/s | SSD 594.8 MB (38.2 KB/op) | wall 11.96s | swapouts 0
+  rest 60s
+t2_followup  prompt 209 new (+2947 cached) in 2s | gen 64 @ 26.96 t/s | SSD 86.2 MB (130.8 KB/op) | wall 4.6s | swapouts 0
+  rest 60s
+t3_followup  prompt 326 new (+3152 cached) in 3s | gen 64 @ 21.27 t/s | SSD 78.0 MB (89.2 KB/op) | wall 5.56s | swapouts 0

@@ -6,7 +6,7 @@
 ROOT="/Volumes/LLM SSD/Flashback"
 OUT="$ROOT/logs/resources.csv"
 [ -f "$OUT" ] || echo "time,thermal,cpu_user,cpu_sys,cpu_idle,gpu_util,gpu_mem_MB,physmem_used,wired_MB,compressor_MB,mem_free_pct,swap_used_MB,server_cpu,server_footprint_MB,ssd_MBps" > "$OUT"
-while pgrep -f "run_ubatch.sh|download_extra.sh|run_spec.sh|run_more.sh" >/dev/null; do
+while pgrep -f "run_ubatch.sh|download_extra.sh|run_spec.sh|run_more.sh|run_20b.sh" >/dev/null; do
   T=$(date '+%F %T')
   L=$(notifyutil -g com.apple.system.thermalpressurelevel | awk '{print $2}')
   TOP=$(top -l 1 -n 0)

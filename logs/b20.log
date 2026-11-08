@@ -1,0 +1,36 @@
+2026-11-08 20:38:13 20b test start (swap used 981MB, free 79%)
+2026-11-08 20:38:13 cooldown 1200 s
+2026-11-08 20:58:13 cool ok, level=0
+2026-11-08 20:58:13 start server b20_gpu MODEL=20b EXPS=GPU EXTRA=[] (wired before: (2551M, free 79%)
+2026-11-08 20:58:56 server ready after 42s
+2026-11-08 20:58:57 footprint:     phys_footprint: 419 MB; wired: (2531M; free 76%
+2026-11-08 20:58:57 cooldown 300 s
+2026-11-08 21:03:57 cool ok, level=0
+2026-11-08 21:04:02 spec b20_gpu exit=0 : b20_gpu: prompt 1895 in 3s | gen 96 @ 46.390 t/s | draft None acc None | SSD 105.9 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/b20_gpu_20261108_210402.jsonl 
+2026-11-08 21:04:02 cooldown 300 s
+2026-11-08 21:09:02 cool ok, level=0
+2026-11-08 21:11:11 agent b20_gpu exit=0 : SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/b20_gpu_agent_20261108_210902.jsonl t1_long      prompt 2951 new (+0 cached) in 4s | gen 64 @ 45.44 t/s | SSD 85.7 MB (164.5 KB/op) | wall 5.22s | swapouts 0   rest 60s t2_followup  prompt 209 new (+2947 cached) in 0s | gen 64 @ 45.50 t/s | SSD 0.0 MB (0.0 KB/op) | wall 1.88s | swapouts 0   rest 60s t3_followup  prompt 326 new (+3152 cached) in 1s | gen 64 @ 45.15 t/s | SSD 0.0 MB (0.0 KB/op) | wall 2.03s | swapouts 0 
+2026-11-08 21:11:11 swapouts since start: +0 pages, swap used 981 MB (start 981)
+2026-11-08 21:11:11 cooldown 1200 s
+2026-11-08 21:31:11 cool ok, level=0
+2026-11-08 21:31:11 start server b20_mmap MODEL=20b EXPS=CPU EXTRA=[] (wired before: (2429M, free 76%)
+2026-11-08 21:31:28 server ready after 16s
+2026-11-08 21:31:28 footprint:     phys_footprint: 415 MB; wired: (3637M; free 69%
+0.00.322.515 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2026-11-08 21:31:28 cooldown 300 s
+2026-11-08 21:36:28 cool ok, level=0
+2026-11-08 21:37:02 spec b20_mmap exit=0 : b20_mmap: prompt 1895 in 29s | gen 96 @ 22.597 t/s | draft None acc None | SSD 5954.8 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/b20_mmap_20261108_213702.jsonl 
+2026-11-08 21:37:02 cooldown 300 s
+2026-11-08 21:42:02 cool ok, level=0
+2026-11-08 21:44:25 agent b20_mmap exit=0 : SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/b20_mmap_agent_20261108_214202.jsonl t1_long      prompt 2951 new (+0 cached) in 8s | gen 64 @ 18.41 t/s | SSD 594.8 MB (38.2 KB/op) | wall 11.96s | swapouts 0   rest 60s t2_followup  prompt 209 new (+2947 cached) in 2s | gen 64 @ 26.96 t/s | SSD 86.2 MB (130.8 KB/op) | wall 4.6s | swapouts 0   rest 60s t3_followup  prompt 326 new (+3152 cached) in 3s | gen 64 @ 21.27 t/s | SSD 78.0 MB (89.2 KB/op) | wall 5.56s | swapouts 0 
+2026-11-08 21:44:25 swapouts since start: +0 pages, swap used 965 MB (start 981)
+2026-11-08 21:44:25 cooldown 1200 s
+2026-11-08 22:04:25 cool ok, level=0
+2026-11-08 22:04:25 start server b20_gpu_ngram MODEL=20b EXPS=GPU EXTRA=[--spec-type ngram-mod] (wired before: (2519M, free 76%)
+2026-11-08 22:04:46 server ready after 20s
+2026-11-08 22:04:46 footprint:     phys_footprint: 435 MB; wired: (12G; free 37%
+2026-11-08 22:04:46 cooldown 300 s
+2026-11-08 22:09:46 cool ok, level=0
+2026-11-08 22:09:50 spec b20_gpu_ngram exit=0 : b20_gpu_ngram: prompt 1895 in 3s | gen 96 @ 119.698 t/s | draft 73 acc 73 | SSD 41.1 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/b20_gpu_ngram_20261108_220949.jsonl 
+2026-11-08 22:09:50 swapouts since start: +0 pages, swap used 965 MB (start 981)
+2026-11-08 22:09:50 end: 全部完成
