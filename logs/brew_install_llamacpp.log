@@ -1,0 +1,76 @@
+==> Auto-updating Homebrew...
+Adjust how often this is run with `$HOMEBREW_AUTO_UPDATE_SECS` or disable with
+`$HOMEBREW_NO_AUTO_UPDATE=1`. Hide these hints with `$HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> Downloading https://ghcr.io/v2/homebrew/core/portable-ruby/blobs/sha256:43ff285a82f48c84a06d0676a3800815a19d290d32e44182ddd7a6e95478e18e
+#=#=#                                                                          ##O#-#                                                                         ##O=#  #                                                                                                                                                  0.3%#                                                                          2.3%#######                                                                   10.4%########################                                                  34.2%########################################                                  56.4%######################################################################## 100.0%
+==> Pouring portable-ruby-4.0.9.arm64_big_sur.bottle.tar.gz
+==> Downloading bottle manifests
+✔︎ Bottle Manifest llama.cpp (0.9.0)
+==> Would install 1 formula:
+llama.cpp 0.9.0
+==> Would install 3 dependencies for llama.cpp:
+libomp     23.1.5
+ggml       0.29.0
+openssl@4  4.1.0
+==> Would upgrade 1 dependency for llama.cpp:
+ca-certificates 2026-05-14 -> 2026-11-05
+==> Fetching downloads for: llama.cpp
+✔︎ Bottle Manifest ca-certificates (2026-11-05)
+✔︎ Bottle Manifest openssl@4 (4.1.0)
+✔︎ Bottle Manifest libomp (23.1.5)
+✔︎ Bottle Manifest ggml (0.29.0)
+✔︎ Bottle ca-certificates (2026-11-05)
+✔︎ Bottle libomp (23.1.5)
+✔︎ Bottle ggml (0.29.0)
+✔︎ Bottle llama.cpp (0.9.0)
+✔︎ Bottle openssl@4 (4.1.0)
+==> Installing dependencies for llama.cpp: libomp, ggml, ca-certificates and openssl@4
+==> Installing llama.cpp dependency: libomp (23.1.5)
+==> Pouring libomp--23.1.5.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libomp/23.1.5: 11 files, 1.8MB
+==> Installing llama.cpp dependency: ggml (0.29.0)
+==> Pouring ggml--0.29.0.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/ggml/0.29.0: 38 files, 8.3MB
+==> Upgrading llama.cpp dependency: ca-certificates (2026-05-14 -> 2026-11-05)
+==> Pouring ca-certificates--2026-11-05.all.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/ca-certificates/2026-11-05: 5 files, 196.1KB
+==> Installing llama.cpp dependency: openssl@4 (4.1.0)
+==> Pouring openssl@4--4.1.0.arm64_golden_gate.bottle.tar.gz
+Unlinking /opt/homebrew/Cellar/openssl@3/3.6.2... 6560 symlinks removed.
+🍺  /opt/homebrew/Cellar/openssl@4/4.1.0: 6,869 files, 24.6MB
+==> Installing llama.cpp
+==> Pouring llama.cpp--0.9.0.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/llama.cpp/0.9.0: 70 files, 21.4MB
+==> `brew cleanup` has not been run in the last 30 days, running now...
+Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+Removing: /opt/homebrew/Cellar/ca-certificates/2026-05-14... (4 files, 200.6KB)
+Removing: ~/Library/Caches/Homebrew/gh--2.93.0... (13.1MB)
+Removing: ~/Library/Caches/Homebrew/gh_bottle_manifest--2.93.0... (7.3KB)
+Removing: ~/Library/Caches/Homebrew/libevent--2.1.12_1... (738.7KB)
+Removing: ~/Library/Caches/Homebrew/libevent_bottle_manifest--2.1.12_1... (17KB)
+Removing: ~/Library/Caches/Homebrew/ncurses--6.6... (2.5MB)
+Removing: ~/Library/Caches/Homebrew/ncurses_bottle_manifest--6.6... (11.9KB)
+Removing: ~/Library/Caches/Homebrew/openssl@3_bottle_manifest--3.6.3... (11.9KB)
+Removing: ~/Library/Caches/Homebrew/pipx--1.15.0... (337.9KB)
+Removing: ~/Library/Caches/Homebrew/pipx_bottle_manifest--1.15.0... (4.5KB)
+Removing: ~/Library/Caches/Homebrew/python@3.14--3.14.6... (19.2MB)
+Removing: ~/Library/Caches/Homebrew/python@3.14_bottle_manifest--3.14.6... (31.3KB)
+Removing: ~/Library/Caches/Homebrew/sqlite--3.53.3... (2.5MB)
+Removing: ~/Library/Caches/Homebrew/sqlite_bottle_manifest--3.53.3... (11.8KB)
+Removing: ~/Library/Caches/Homebrew/tmux--3.6b... (509KB)
+Removing: ~/Library/Caches/Homebrew/tmux_bottle_manifest--3.6b-1... (12.7KB)
+Removing: ~/Library/Caches/Homebrew/utf8proc--2.11.3... (107.2KB)
+Removing: ~/Library/Caches/Homebrew/utf8proc_bottle_manifest--2.11.3-1... (7.5KB)
+Removing: ~/Library/Caches/Homebrew/portable-ruby-4.0.7.arm64_big_sur.bottle.tar.gz... (12.7MB)
+Removing: ~/Library/Caches/Homebrew/api/formula/merve.json... (3.5KB)
+Removing: ~/Library/Caches/Homebrew/api/formula/hdrhistogram_c.json... (3.8KB)
+Removing: ~/Library/Caches/Homebrew/api/formula/opus-tools.json... (4.5KB)
+Removing: ~/Library/Caches/Homebrew/bootsnap/d2fe20dcaac1dfd932074d89a3fa98c61e62ad39b80bee7a6f7886937aaa92c0... (1,117 files, 10.4MB)
+Removing: /opt/homebrew/lib/python3.14/site-packages/__pycache__/isympy.cpython-314.pyc... (11.3KB)
+Removing: /opt/homebrew/lib/python3.14/site-packages/__pycache__/pylab.cpython-314.pyc... (288B)
+Removing: /opt/homebrew/lib/python3.14/site-packages/__pycache__/six.cpython-314.pyc... (42.9KB)
+Removing: /opt/homebrew/lib/python3.14/site-packages/__pycache__/threadpoolctl.cpython-314.pyc... (59.5KB)
+Removing: /opt/homebrew/lib/python3.14/site-packages/__pycache__/typing_extensions.cpython-314.pyc... (175.5KB)
+Pruned 0 symbolic links and 1 directories from /opt/homebrew
+exit=0

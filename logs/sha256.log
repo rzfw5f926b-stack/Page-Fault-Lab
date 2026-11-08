@@ -1,0 +1,4 @@
+Sun Nov  8 01:47:30 CST 2026
+582bd40f6886200101f4c4ed9f25f3fe80cc14c86e9e2b37746cd8904a0c622d  models/gpt-oss-120b-MXFP4.gguf
+shasum -a 256 models/gpt-oss-120b-MXFP4.gguf  110.17s user 8.19s system 78% cpu 2:31.53 total
+exit=0

@@ -1,0 +1,20 @@
+
+Assistant: [tool call] edit {"path": "scripts/bench.py", "old_string": "    ap.add_argument(\"--prompts\", default=\",\".join(PROMPTS))", "new_string": "    ap.add_argument(\"--prompts\", default=\",\".join(PROMPTS))\n    ap.add_argument(\"--dry-run\", action=\"store_true\")"}
+
+[tool result]
+ok
+
+Assistant: [tool call] bash {"command": "python3 scripts/bench.py llama --label smoke --rounds 1 --n 8 --dry-run; echo exit=$?"}
+
+[tool result]
+SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/smoke_20261108_031502.jsonl
+Traceback (most recent call last):
+  File "scripts/bench.py", line 131, in <module>
+    main()
+  File "scripts/bench.py", line 104, in main
+    res = (run_llama if args.backend == "llama" else run_ollama)(args, prompt)
+  File "scripts/bench.py", line 50, in run_llama
+    r = post(args.url + "/v1/chat/completions", payload)
+urllib.error.URLError: <urlopen error [Errno 61] Connection refused>
+exit=1
+Note: --dry-run is parsed but main() never checks it, so it still sends requests; and the background iostat process (pid 41822) is still running after the crash.

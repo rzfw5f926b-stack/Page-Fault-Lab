@@ -1,0 +1,25 @@
+2026-11-08 11:12:07 ubatch test start (trips so far: 2)
+2026-11-08 11:12:07 cooldown 600 s
+2026-11-08 11:22:07 cool ok, level=0
+2026-11-08 11:25:16 server ready after 183s
+2026-11-08 11:25:16 footprint:     phys_footprint: 1069 MB
+2026-11-08 11:25:16 cooldown 300 s
+2026-11-08 11:30:16 cool ok, level=0
+2026-11-08 11:30:16 start bench ub_c16k_ub8192
+2026-11-08 11:45:52 bench ub_c16k_ub8192 exit=143 : SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/ub_c16k_ub8192_20261108_113016.jsonl t1_long      prompt 7450 new (+0 cached) in 278s | gen 32 @ 0.28 t/s | SSD 88610.5 MB (35.6 KB/op) | wall 389.87s | swapouts 0   rest 300s 
+2026-11-08 11:45:52 swapouts since start: +0 pages
+2026-11-08 11:45:52 ub_c16k_ub8192 因熱保護中止
+2026-11-08 11:45:52 cooldown 1800 s
+2026-11-08 12:15:52 cool ok, level=0
+2026-11-08 12:15:52 cooldown 1200 s
+2026-11-08 12:35:52 cool ok, level=0
+2026-11-08 12:38:53 server ready after 176s
+2026-11-08 12:38:53 footprint:     phys_footprint: 924 MB
+2026-11-08 12:38:53 cooldown 300 s
+2026-11-08 12:43:53 cool ok, level=0
+2026-11-08 12:43:53 start bench ub_c16k_ub4096
+2026-11-08 12:52:01 bench ub_c16k_ub4096 exit=143 : SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/ub_c16k_ub4096_20261108_124354.jsonl 
+2026-11-08 12:52:01 swapouts since start: +0 pages
+2026-11-08 12:52:01 ub_c16k_ub4096 因熱保護中止
+2026-11-08 12:52:01 cooldown 1800 s
+2026-11-08 13:22:01 end: 熱保護本輪跳脫 2 次，停止

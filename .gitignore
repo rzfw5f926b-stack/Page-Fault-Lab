@@ -1,0 +1,8 @@
+# 模型檔太大（88GB），交接時另外複製；SHA256 見 logs/sha256.log 與 logs/download_extra.log
+models/
+# Hugging Face 下載快取
+.hf_home/
+# 系統與 Python 暫存
+.DS_Store
+__pycache__/
+*.pyc

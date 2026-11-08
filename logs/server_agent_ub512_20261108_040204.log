@@ -1,0 +1,19 @@
+0.00.107.095 I srv  llama_server: initializing ...
+0.00.107.102 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.108.521 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.110.727 I srv    load_model: loading model '/Volumes/LLM SSD/Flashback/models/gpt-oss-120b-MXFP4.gguf'
+0.00.349.149 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.00.349.345 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.00.349.632 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.00.349.877 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.00.350.014 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.00.364.030 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2.34.558.532 I cmn          init: llama threadpool init, n_threads = 10
+2.50.680.093 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 4096, kv_unified = 'false'
+2.50.686.105 I srv  server_run_i: model loaded
+2.50.686.108 I srv  server_on_li: listening on http://127.0.0.1:8080
+10.53.250.786 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+10.53.250.801 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+22.00.850.071 I slot print_timing: id  0 | task 0 | prompt processing, n_tokens =   2048, progress = 0.69, t = 667.60 s / 3.07 tokens per second
+24.35.671.793 I slot print_timing: id  0 | task 0 | prompt processing, n_tokens =   2435, progress = 0.83, t = 822.42 s / 2.96 tokens per second
+27.26.526.801 I slot print_timing: id  0 | task 0 | prompt processing, n_tokens =   2947, progress = 1.00, t = 993.28 s / 2.97 tokens per second

@@ -1,0 +1,1 @@
+Write a Python function that parses an Apache access log file, counts requests per IP address and per HTTP status code, and prints the top 10 IPs. Include type hints, error handling for malformed lines, and a short docstring.

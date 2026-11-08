@@ -1,0 +1,14 @@
+
+Assistant: [tool call] edit {"path": "scripts/bench.py", "old_string": "def post(url, payload, timeout=7200):", "new_string": "def post(url, payload, timeout=7200, retries=2):"}
+
+[tool result]
+ok
+
+Assistant: [tool call] bash {"command": "python3 -m py_compile scripts/bench.py && python3 scripts/bench.py llama --label smoke --rounds 1 --n 8 --dry-run"}
+
+[tool result]
+exit code 2
+stderr:
+usage: bench.py [-h] [--url URL] [--model MODEL] --label LABEL [--rounds ROUNDS] [--n N] [--prompts PROMPTS] {llama,ollama}
+bench.py: error: unrecognized arguments: --dry-run
+Traceback note: the retry loop was not added yet; post() still has a single attempt and the new "retries" parameter is unused.

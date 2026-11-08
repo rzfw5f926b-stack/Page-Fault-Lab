@@ -1,0 +1,6 @@
+Sun Nov  8 01:29:34 CST 2026
+Hint: A new version of huggingface_hub (2.4.0) is available! You are using version 1.18.0.
+To update, run: hf update
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+path=/Volumes/LLM SSD/Flashback/models/gpt-oss-120b-MXFP4.gguf
+exit=0 Sun Nov  8 01:47:17 CST 2026

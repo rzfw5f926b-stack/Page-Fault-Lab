@@ -1,0 +1,17 @@
+0.00.097.352 I srv  llama_server: initializing ...
+0.00.097.357 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.098.858 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.100.934 I srv    load_model: loading model '/Volumes/LLM SSD/Flashback/models/gpt-oss-120b-MXFP4.gguf'
+0.00.331.180 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.00.331.398 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.00.331.699 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.00.331.946 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.00.332.065 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.00.346.234 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2.43.507.295 I cmn          init: llama threadpool init, n_threads = 10
+3.00.658.562 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'false'
+3.00.664.763 I srv  server_run_i: model loaded
+3.00.664.767 I srv  server_on_li: listening on http://127.0.0.1:8080
+8.01.552.360 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+8.01.552.375 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+11.25.007.604 I slot print_timing: id  0 | task 0 | prompt processing, n_tokens =   1891, progress = 1.00, t = 203.45 s / 9.29 tokens per second

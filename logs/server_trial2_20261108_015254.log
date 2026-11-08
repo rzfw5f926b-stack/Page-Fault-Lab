@@ -1,0 +1,10 @@
+0.00.061.720 I srv  llama_server: initializing ...
+0.00.061.725 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.061.893 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.063.251 I srv    load_model: loading model '/Volumes/LLM SSD/Flashback/models/gpt-oss-120b-MXFP4.gguf'
+0.00.334.613 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.00.334.877 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.00.335.294 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.00.335.698 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.00.335.925 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.00.350.682 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance

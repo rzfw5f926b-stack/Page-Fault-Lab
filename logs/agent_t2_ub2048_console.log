@@ -1,0 +1,6 @@
+SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/agent_t2_ub2048_20261108_063355.jsonl
+t1_long      prompt 2951 new (+0 cached) in 432s | gen 64 @ 0.23 t/s | SSD 137852.3 MB (38.0 KB/op) | wall 700.83s | swapouts 0
+  rest 300s
+t2_followup  prompt 209 new (+2947 cached) in 178s | gen 64 @ 0.24 t/s | SSD 77843.6 MB (32.5 KB/op) | wall 445.37s | swapouts 0
+  rest 300s
+t3_followup  prompt 326 new (+3152 cached) in 200s | gen 64 @ 0.20 t/s | SSD 88479.7 MB (32.3 KB/op) | wall 508.04s | swapouts 0

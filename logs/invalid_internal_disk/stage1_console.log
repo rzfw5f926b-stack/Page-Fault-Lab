@@ -1,0 +1,9 @@
+SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/stage1_ollama20b_20261108_013119.jsonl
+r1 qa_zh     gen 256 tok @ 28.46 t/s | pp 182.6 t/s | SSD 406.3 MB (781.3 KB/op) | wall 16.66s
+r1 code      gen 256 tok @ 28.82 t/s | pp 436.1 t/s | SSD 1594.5 MB (980.6 KB/op) | wall 9.2s
+r1 essay_zh  gen 256 tok @ 29.57 t/s | pp 458.9 t/s | SSD 236.8 MB (951.0 KB/op) | wall 8.98s
+r2 qa_zh     gen 256 tok @ 29.38 t/s | pp 1405.8 t/s | SSD 8.5 MB (250.0 KB/op) | wall 8.86s
+r2 code      gen 256 tok @ 29.13 t/s | pp 1345.5 t/s | SSD 1424.4 MB (986.4 KB/op) | wall 8.93s
+r2 essay_zh  gen 256 tok @ 29.54 t/s | pp 1363.3 t/s | SSD 0.0 MB (0.0 KB/op) | wall 8.81s
+r3 qa_zh     gen 256 tok @ 29.32 t/s | pp 1320.7 t/s | SSD 1084.4 MB (986.7 KB/op) | wall 8.9s
+r3 code      gen 256 tok @ 29.53 t/s | pp 1338.4 t/s | SSD 42.0 MB (608.7 KB/op) | wall 8.81s

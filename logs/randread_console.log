@@ -1,0 +1,31 @@
+log = /Volumes/LLM SSD/Flashback/logs/randread_20261108_110548.jsonl
+    4KB QD 1:   3359 IOPS    13.8 MB/s lat 0.297 ms
+    4KB QD 2:   6473 IOPS    26.5 MB/s lat 0.309 ms
+    4KB QD 4:  10381 IOPS    42.5 MB/s lat 0.385 ms
+    4KB QD 8:  15565 IOPS    63.8 MB/s lat 0.514 ms
+    4KB QD16:  19398 IOPS    79.5 MB/s lat 0.824 ms
+    4KB QD32:  19211 IOPS    78.7 MB/s lat 1.665 ms
+   24KB QD 1:   2693 IOPS    66.2 MB/s lat 0.371 ms
+   24KB QD 2:   4636 IOPS   113.9 MB/s lat 0.431 ms
+   24KB QD 4:   5678 IOPS   139.5 MB/s lat 0.704 ms
+   24KB QD 8:   5957 IOPS   146.4 MB/s lat 1.343 ms
+   24KB QD16:   5958 IOPS   146.4 MB/s lat 2.685 ms
+   24KB QD32:   5323 IOPS   130.8 MB/s lat 6.009 ms
+   48KB QD 1:   2423 IOPS   119.1 MB/s lat 0.412 ms
+   48KB QD 2:   3595 IOPS   176.7 MB/s lat 0.556 ms
+   48KB QD 4:   3588 IOPS   176.4 MB/s lat 1.114 ms
+   48KB QD 8:   3590 IOPS   176.5 MB/s lat 2.228 ms
+   48KB QD16:   3587 IOPS   176.3 MB/s lat 4.459 ms
+   48KB QD32:   3588 IOPS   176.4 MB/s lat 8.912 ms
+  128KB QD 1:   1352 IOPS   177.2 MB/s lat 0.739 ms
+  128KB QD 2:   1876 IOPS   245.9 MB/s lat 1.065 ms
+  128KB QD 4:   1876 IOPS   245.9 MB/s lat 2.131 ms
+  128KB QD 8:   1877 IOPS   246.0 MB/s lat 4.261 ms
+  128KB QD16:   1876 IOPS   245.9 MB/s lat 8.522 ms
+  128KB QD32:   1871 IOPS   245.2 MB/s lat 17.086 ms
+ 1024KB QD 1:    324 IOPS   340.0 MB/s lat 3.084 ms
+ 1024KB QD 2:    363 IOPS   380.2 MB/s lat 5.514 ms
+ 1024KB QD 4:    366 IOPS   383.8 MB/s lat 10.922 ms
+ 1024KB QD 8:    368 IOPS   385.5 MB/s lat 21.737 ms
+ 1024KB QD16:    370 IOPS   388.1 MB/s lat 43.131 ms
+ 1024KB QD32:    372 IOPS   390.5 MB/s lat 85.567 ms

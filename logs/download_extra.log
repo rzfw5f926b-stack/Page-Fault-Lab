@@ -1,0 +1,18 @@
+2026-11-08 13:22:49 start downloads
+2026-11-08 13:22:49 hf download ggml-org/gpt-oss-120b-GGUF eagle3-gpt-oss-120b-Q8_0.gguf
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+path=/Volumes/LLM SSD/Flashback/models/eagle3-gpt-oss-120b-Q8_0.gguf
+2026-11-08 13:23:13 exit=0
+2026-11-08 13:23:15 sha256 eagle3-gpt-oss-120b-Q8_0.gguf MATCH expected=1f428ef9de7e761a34392253a6371b4a027595ccdafa18212b06d38a8db34b41 got=1f428ef9de7e761a34392253a6371b4a027595ccdafa18212b06d38a8db34b41
+2026-11-08 13:23:15 hf download ggml-org/gpt-oss-20b-GGUF gpt-oss-20b-MXFP4.gguf
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+path=/Volumes/LLM SSD/Flashback/models/gpt-oss-20b-MXFP4.gguf
+2026-11-08 13:26:34 exit=0
+2026-11-08 13:27:00 sha256 gpt-oss-20b-MXFP4.gguf MATCH expected=27cd6c432c7672cb812a92f611cf3ba7bbc35928262bb1e1253ff4ee6ae35901 got=27cd6c432c7672cb812a92f611cf3ba7bbc35928262bb1e1253ff4ee6ae35901
+2026-11-08 13:27:00 hf download unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+path=/Volumes/LLM SSD/Flashback/models/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf
+2026-11-08 13:32:02 exit=0
+2026-11-08 13:32:46 sha256 Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf MATCH expected=fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad got=fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad
+2026-11-08 13:32:46 all downloads done
+/dev/disk5s1   931Gi    88Gi   843Gi    10%     250  8.8G    0%   /Volumes/LLM SSD

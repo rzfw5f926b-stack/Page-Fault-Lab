@@ -1,0 +1,445 @@
+You are a coding agent running inside a terminal-based coding assistant. You help the user with software engineering tasks in their repository. Follow these rules strictly:
+
+- Be concise. Prefer making changes with tools over describing them.
+- Before editing a file you must read it. Never invent file contents.
+- Keep changes minimal and focused on the task. Do not refactor unrelated code.
+- After editing, run the relevant tests or a quick syntax check and report the result honestly.
+- Use the exact tool call format described below. One tool call per message.
+- Paths are relative to the repository root unless they start with "/".
+- If a command fails, read the error carefully and fix the root cause instead of retrying blindly.
+- Never run destructive commands (rm -rf, git reset --hard, force push) without asking the user.
+- When you are done, reply with a short summary of what changed and how it was verified.
+
+# Tools
+
+## read
+Read a file from the repository.
+Parameters:
+- path (string, required): file path
+- offset (integer, optional): first line to read, 1-based
+- limit (integer, optional): maximum number of lines
+Returns the file contents with line numbers.
+
+## edit
+Replace an exact string in a file.
+Parameters:
+- path (string, required)
+- old_string (string, required): text to replace; must match exactly and be unique
+- new_string (string, required): replacement text
+- replace_all (boolean, optional): replace every occurrence
+Returns "ok" or an error explaining why the match failed.
+
+## write
+Create or overwrite a file.
+Parameters:
+- path (string, required)
+- content (string, required)
+
+## bash
+Run a shell command in the repository root.
+Parameters:
+- command (string, required)
+- timeout_ms (integer, optional, default 120000)
+Returns stdout, stderr and the exit code.
+
+## grep
+Search file contents with a regular expression.
+Parameters:
+- pattern (string, required)
+- path (string, optional): directory or file to search
+- glob (string, optional): filter files, e.g. "*.py"
+Returns matching lines with file names and line numbers.
+
+## glob
+List files matching a pattern.
+Parameters:
+- pattern (string, required), e.g. "src/**/*.ts"
+
+## todo
+Maintain a short task list for multi-step work.
+Parameters:
+- items (array of {content, status}), status is one of pending, in_progress, completed
+
+# Environment
+- Platform: darwin
+- Shell: zsh
+- Python: 3.14
+- Repository root: /Users/dev/projects/flashback-tools
+- Git repository: yes, branch main, clean working tree
+
+# Conversation
+
+User: The benchmark script scripts/bench.py sometimes crashes when the llama server returns an error or times out, and then the background iostat/vm_stat processes keep running. Please (1) make the HTTP call robust: retry up to 2 times on connection errors with a short backoff, and record a failed request as a row with an "error" field instead of crashing, (2) make sure the background loggers are always terminated, even on Ctrl-C, and (3) add a --dry-run flag that prints the planned requests without sending them. Keep the output format of the .jsonl file backward compatible.
+
+Assistant: I'll start by reading the script.
+[tool call] read {"path": "scripts/bench.py"}
+
+[tool result]
+     1	#!/usr/bin/env python3
+     2	"""Flashback 量測腳本：對 llama-server 或 Ollama 送固定提示詞，前後記錄 SSD 讀取量與 pageins。
+     3	
+     4	用法：
+     5	  python3 -I scripts/bench.py llama --url http://127.0.0.1:8080 --label main_t6 --rounds 3 --n 256
+     6	  python3 -I scripts/bench.py ollama --model gpt-oss:20b --label baseline --rounds 3 --n 256
+     7	輸出：logs/<label>_<時間>.jsonl（每次請求一行）以及背景 iostat / vm_stat 每秒紀錄。
+     8	"""
+     9	import argparse, json, os, re, subprocess, sys, time, urllib.request
+    10	
+    11	ROOT = "/Volumes/LLM SSD/Flashback"
+    12	PROMPTS = ["qa_zh", "code", "essay_zh"]
+    13	
+    14	
+    15	def ssd_whole_disk():
+    16	    out = subprocess.run(["diskutil", "info", "/Volumes/LLM SSD"], capture_output=True, text=True).stdout
+    17	    # APFS 卷宗在合成容器上，要找實體磁碟：用 Physical Store 往回推
+    18	    m = re.search(r"APFS Physical Store:\s+(disk\d+)", out)
+    19	    if m:
+    20	        return m.group(1)
+    21	    return re.search(r"Part of Whole:\s+(disk\d+)", out).group(1)
+    22	
+    23	
+    24	def disk_read_stats(disk):
+    25	    """回傳 (累計傳輸 bytes, 累計傳輸次數)，取自 iostat -I（開機後累計，含讀寫；實驗期間幾乎只有讀）。"""
+    26	    out = subprocess.run(["iostat", "-Id", "-c", "1", disk], capture_output=True, text=True).stdout
+    27	    kbt, xfrs, mb = out.strip().splitlines()[-1].split()[:3]
+    28	    return int(float(mb) * 1024 * 1024), int(xfrs)
+    29	
+    30	
+    31	def vm_pageins():
+    32	    out = subprocess.run(["vm_stat"], capture_output=True, text=True).stdout
+    33	    get = lambda k: int(re.search(rf"{k}:\s+(\d+)", out).group(1))
+    34	    return {"pageins": get("Pageins"), "swapins": get("Swapins"), "swapouts": get("Swapouts")}
+    35	
+    36	
+    37	def post(url, payload, timeout=7200):
+    38	    req = urllib.request.Request(url, data=json.dumps(payload).encode(),
+    39	                                 headers={"Content-Type": "application/json"})
+    40	    with urllib.request.urlopen(req, timeout=timeout) as r:
+    41	        return json.loads(r.read())
+    42	
+    43	
+    44	def run_llama(args, prompt):
+    45	    payload = {"messages": [{"role": "user", "content": prompt}],
+    46	               "max_tokens": args.n, "ignore_eos": True, "cache_prompt": False,
+    47	               "temperature": 0.0, "seed": 42}
+    48	    r = post(args.url + "/v1/chat/completions", payload)
+    49	    t = r["timings"]
+    50	    msg = r["choices"][0]["message"]
+    51	    text = (msg.get("reasoning_content") or "") + "\n---\n" + (msg.get("content") or "")
+    52	    return {"prompt_n": t["prompt_n"], "prompt_tps": t["prompt_per_second"],
+    53	            "gen_n": t["predicted_n"], "gen_tps": t["predicted_per_second"],
+    54	            "gen_ms": t["predicted_ms"], "prompt_ms": t["prompt_ms"], "text": text}
+    55	
+    56	
+    57	def run_ollama(args, prompt):
+    58	    payload = {"model": args.model, "messages": [{"role": "user", "content": prompt}],
+    59	               "stream": False, "options": {"num_predict": args.n, "temperature": 0, "seed": 42}}
+    60	    r = post("http://127.0.0.1:11434/api/chat", payload)
+    61	    msg = r["message"]
+    62	    text = (msg.get("thinking") or "") + "\n---\n" + (msg.get("content") or "")
+    63	    return {"prompt_n": r.get("prompt_eval_count"),
+    64	            "prompt_tps": r.get("prompt_eval_count", 0) / (r.get("prompt_eval_duration", 1) / 1e9),
+    65	            "gen_n": r["eval_count"], "gen_tps": r["eval_count"] / (r["eval_duration"] / 1e9),
+    66	            "gen_ms": r["eval_duration"] / 1e6, "prompt_ms": r.get("prompt_eval_duration", 0) / 1e6,
+    67	            "text": text}
+    68	
+    69	
+    70	def main():
+    71	    ap = argparse.ArgumentParser()
+    72	    ap.add_argument("backend", choices=["llama", "ollama"])
+    73	    ap.add_argument("--url", default="http://127.0.0.1:8080")
+    74	    ap.add_argument("--model", default="gpt-oss:20b")
+    75	    ap.add_argument("--label", required=True)
+    76	    ap.add_argument("--rounds", type=int, default=3)
+    77	    ap.add_argument("--n", type=int, default=256)
+    78	    ap.add_argument("--prompts", default=",".join(PROMPTS))
+    79	    args = ap.parse_args()
+    80	
+    81	    disk = ssd_whole_disk()
+    82	    stamp = time.strftime("%Y%m%d_%H%M%S")
+    83	    base = f"{ROOT}/logs/{args.label}_{stamp}"
+    84	    # 背景每秒紀錄
+    85	    bg = [subprocess.Popen(["iostat", "-d", "-w", "1", disk], stdout=open(base + "_iostat.log", "w")),
+    86	          subprocess.Popen(["vm_stat", "1"], stdout=open(base + "_vmstat.log", "w")),
+    87	          # 每 10 秒記錄降頻狀態與記憶體壓力
+    88	          subprocess.Popen(["/bin/sh", "-c", "while true; do date '+%T'; pmset -g therm | grep -v '^$'; "
+    89	                            "memory_pressure | tail -1; sleep 10; done"],
+    90	                           stdout=open(base + "_therm.log", "w"))]
+    91	    print(f"SSD = {disk}, log = {base}.jsonl", flush=True)
+    92	    try:
+    93	        with open(base + ".jsonl", "w") as f:
+    94	            for rnd in range(1, args.rounds + 1):
+    95	                for p in args.prompts.split(","):
+    96	                    prompt = open(f"{ROOT}/prompts/{p}.txt").read().strip()
+    97	                    d0, v0, t0 = disk_read_stats(disk), vm_pageins(), time.time()
+    98	                    res = (run_llama if args.backend == "llama" else run_ollama)(args, prompt)
+    99	                    d1, v1, t1 = disk_read_stats(disk), vm_pageins(), time.time()
+   100	                    rec = {"label": args.label, "round": rnd, "prompt": p, "wall_s": round(t1 - t0, 2),
+   101	                           "ssd_read_MB": round((d1[0] - d0[0]) / 1e6, 1),
+   102	                           "ssd_read_ops": d1[1] - d0[1],
+   103	                           "pageins": v1["pageins"] - v0["pageins"],
+   104	                           "swapins": v1["swapins"] - v0["swapins"],
+   105	                           "swapouts": v1["swapouts"] - v0["swapouts"], **res}
+   106	                    rec["ssd_MB_per_wall_s"] = round(rec["ssd_read_MB"] / max(rec["wall_s"], 1e-9), 1)
+   107	                    rec["avg_read_KB"] = round(rec["ssd_read_MB"] * 1000 / max(rec["ssd_read_ops"], 1), 1)
+   108	                    f.write(json.dumps(rec, ensure_ascii=False) + "\n"); f.flush()
+   109	                    print(f"r{rnd} {p:9s} gen {res['gen_n']} tok @ {res['gen_tps']:.2f} t/s | "
+   110	                          f"pp {res['prompt_tps']:.1f} t/s | SSD {rec['ssd_read_MB']} MB "
+   111	                          f"({rec['avg_read_KB']} KB/op) | wall {rec['wall_s']}s", flush=True)
+   112	    finally:
+   113	        for p in bg:
+   114	            p.terminate()
+   115	
+   116	
+   117	if __name__ == "__main__":
+   118	    main()
+
+Assistant: The script imports helpers and is launched by other scripts; let me read scripts/agent_bench.py too.
+[tool call] read {"path": "scripts/agent_bench.py"}
+
+[tool result]
+     1	#!/usr/bin/env python3
+     2	"""Flashback 代理負載量測：模擬 opencode 寫程式代理的多輪對話。
+     3	
+     4	第 1 輪：約 2,945 token 的長提示詞（系統規則 + 工具定義 + 讀檔結果 + 任務）
+     5	第 2、3 輪：在同一段對話後面追加工具輸出（約 206 / 323 token），開啟前綴快取，
+     6	            只需處理新增的部分。每輪都產生 --n 個 token。
+     7	
+     8	用法：python3 -I scripts/agent_bench.py --label agent_ub512 --n 64 [--erase]
+     9	"""
+    10	import argparse, json, os, subprocess, sys, time, urllib.request
+    11	
+    12	sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    13	from bench import ROOT, ssd_whole_disk, disk_read_stats, vm_pageins, post  # noqa: E402
+    14	
+    15	TURNS = [("t1_long", "agent_turn1.txt"), ("t2_followup", "agent_turn2_add.txt"),
+    16	         ("t3_followup", "agent_turn3_add.txt")]
+    17	
+    18	
+    19	def harmony(user_text):
+    20	    return f"<|start|>user<|message|>{user_text}<|end|><|start|>assistant"
+    21	
+    22	
+    23	def thermal_level():
+    24	    out = subprocess.run(["notifyutil", "-g", "com.apple.system.thermalpressurelevel"],
+    25	                         capture_output=True, text=True).stdout.split()
+    26	    return int(out[-1]) if out else 0
+    27	
+    28	
+    29	def rest(seconds):
+    30	    print(f"  rest {seconds}s", flush=True)
+    31	    time.sleep(seconds)
+    32	    waited = 0
+    33	    while thermal_level() >= 1:
+    34	        time.sleep(30); waited += 30
+    35	        if waited >= 1800:
+    36	            raise SystemExit("熱壓力 30 分鐘未回到 0，停止")
+    37	
+    38	
+    39	def main():
+    40	    ap = argparse.ArgumentParser()
+    41	    ap.add_argument("--url", default="http://127.0.0.1:8080")
+    42	    ap.add_argument("--label", required=True)
+    43	    ap.add_argument("--n", type=int, default=64)
+    44	    ap.add_argument("--turns", default="t1_long,t2_followup,t3_followup")
+    45	    ap.add_argument("--erase", action="store_true", help="開始前清掉伺服器的前綴快取（KV）")
+    46	    ap.add_argument("--pause", type=int, default=0,
+    47	                    help="每輪之間休息的秒數；休息後還要等熱壓力回到 0 才繼續（前綴快取會保留）")
+    48	    args = ap.parse_args()
+    49	
+    50	    if args.erase:
+    51	        try:
+    52	            post(args.url + "/slots/0?action=erase", {})
+    53	        except Exception as e:  # 舊版或停用 slots 時忽略
+    54	            print("erase 失敗（忽略）:", e)
+    55	
+    56	    disk = ssd_whole_disk()
+    57	    stamp = time.strftime("%Y%m%d_%H%M%S")
+    58	    base = f"{ROOT}/logs/{args.label}_{stamp}"
+    59	    bg = [subprocess.Popen(["iostat", "-d", "-w", "1", disk], stdout=open(base + "_iostat.log", "w")),
+    60	          subprocess.Popen(["vm_stat", "1"], stdout=open(base + "_vmstat.log", "w")),
+    61	          subprocess.Popen(["/bin/sh", "-c", "while true; do date '+%T'; pmset -g therm | grep -v '^$'; "
+    62	                            "memory_pressure | tail -1; sleep 10; done"],
+    63	                           stdout=open(base + "_therm.log", "w"))]
+    64	    print(f"SSD = {disk}, log = {base}.jsonl", flush=True)
+    65	    wanted = args.turns.split(",")
+    66	    convo = ""
+    67	    first = True
+    68	    try:
+    69	        with open(base + ".jsonl", "w") as f:
+    70	            for name, fn in TURNS:
+    71	                convo += open(f"{ROOT}/prompts/{fn}").read()
+    72	                if name not in wanted:
+    73	                    continue
+    74	                if not first and args.pause:
+    75	                    rest(args.pause)
+    76	                first = False
+    77	                payload = {"prompt": harmony(convo), "n_predict": args.n, "ignore_eos": True,
+    78	                           "cache_prompt": True, "temperature": 0.0, "seed": 42}
+    79	                d0, v0, t0 = disk_read_stats(disk), vm_pageins(), time.time()
+    80	                r = post(args.url + "/completion", payload)
+    81	                d1, v1, t1 = disk_read_stats(disk), vm_pageins(), time.time()
+    82	                t = r["timings"]
+    83	                rec = {"label": args.label, "turn": name, "start": time.strftime("%T", time.localtime(t0)),
+    84	                       "wall_s": round(t1 - t0, 2),
+    85	                       "prompt_total_tokens": r.get("tokens_evaluated"),
+    86	                       "prompt_cached": t.get("cache_n"), "prompt_n": t["prompt_n"],
+    87	                       "prompt_ms": t["prompt_ms"], "prompt_tps": t["prompt_per_second"],
+    88	                       "gen_n": t["predicted_n"], "gen_ms": t["predicted_ms"],
+    89	                       "gen_tps": t["predicted_per_second"],
+    90	                       "ssd_read_MB": round((d1[0] - d0[0]) / 1e6, 1), "ssd_read_ops": d1[1] - d0[1],
+    91	                       "pageins": v1["pageins"] - v0["pageins"],
+    92	                       "swapouts": v1["swapouts"] - v0["swapouts"], "text": r.get("content", "")}
+    93	                rec["avg_read_KB"] = round(rec["ssd_read_MB"] * 1000 / max(rec["ssd_read_ops"], 1), 1)
+    94	                f.write(json.dumps(rec, ensure_ascii=False) + "\n"); f.flush()
+    95	                print(f"{name:12s} prompt {rec['prompt_n']} new (+{rec['prompt_cached']} cached) "
+    96	                      f"in {rec['prompt_ms']/1000:.0f}s | gen {rec['gen_n']} @ {rec['gen_tps']:.2f} t/s | "
+    97	                      f"SSD {rec['ssd_read_MB']} MB ({rec['avg_read_KB']} KB/op) | wall {rec['wall_s']}s "
+    98	                      f"| swapouts {rec['swapouts']}", flush=True)
+    99	    finally:
+   100	        for p in bg:
+   101	            p.terminate()
+   102	
+   103	
+   104	if __name__ == "__main__":
+   105	    main()
+
+Assistant: The script imports helpers and is launched by other scripts; let me read scripts/run_overnight.sh too.
+[tool call] read {"path": "scripts/run_overnight.sh"}
+
+[tool result]
+     1	#!/bin/sh
+     2	# 通宵排程 v3（2026-11-08 02:40）。使用者要求：不過熱優先於實驗成功。
+     3	# 順序：B（-ub 2048，長提示詞較短、持續發熱時間短）→ A'（-ub 512）→ C（-t 8、-t 2，用較快的 ubatch）。
+     4	# - 每段開始前：冷卻 20 分鐘，且熱壓力必須回到 0
+     5	# - 伺服器啟動（會預讀整個模型）後冷卻 5 分鐘、等熱壓力 0
+     6	# - 每輪 t1/t2/t3 之間休息 5 分鐘、等熱壓力 0（agent_bench --pause；前綴快取保留，不影響量測）
+     7	# - scripts/thermal_guard.sh：熱壓力 >=1 立即停止量測與伺服器（SIGKILL）；跳脫後冷卻 30 分鐘；累計 3 次就全部停止
+     8	# - 冷啟動：無法 sudo purge，改讀 24GB scratch/evict.bin 擠出快取（近似）
+     9	# - swapouts 增加超過 1GB 就全部停止
+    10	ROOT="/Volumes/LLM SSD/Flashback"
+    11	cd "$ROOT" || exit 1
+    12	LOG="$ROOT/logs/overnight.log"
+    13	log() { echo "$(date '+%F %T') $*" >> "$LOG"; }
+    14	swapouts() { vm_stat | awk '/Swapouts/ {gsub("\\.","",$2); print $2}'; }
+    15	S0=$(swapouts)
+    16	level() { notifyutil -g com.apple.system.thermalpressurelevel | awk '{print $2}'; }
+    17	trips() { ls "$ROOT"/logs/THERMAL_TRIP_* 2>/dev/null | wc -l | tr -d ' '; }
+    18	stop_server() {
+    19	  pkill -9 -f "llama-server -m" 2>/dev/null
+    20	  i=0; while pgrep -f "llama-server -m" >/dev/null && [ $i -lt 600 ]; do sleep 1; i=$((i+1)); done
+    21	  log "server stopped"
+    22	}
+    23	finish() { stop_server; touch "$ROOT/logs/overnight_done"; log "overnight end: $1"; exit 0; }
+    24	check_swap() {
+    25	  d=$(( $(swapouts) - S0 )); log "swapouts since start: +$d pages"
+    26	  [ "$d" -gt 65536 ] && finish "swap 增加過多，中止"
+    27	}
+    28	ensure_cool() {
+    29	  [ "$(trips)" -ge 3 ] && finish "熱保護累計跳脫 3 次，停止所有測試"
+    30	  i=0; while [ "$(level)" -ge 1 ]; do
+    31	    [ $i -ge 2700 ] && finish "熱壓力 45 分鐘未回到 0，停止"
+    32	    sleep 30; i=$((i+30)); done
+    33	}
+    34	cool() { log "cooldown $1 s"; sleep "$1"; ensure_cool; log "cool ok, level=$(level)"; }
+    35	wait_ready() {
+    36	  i=0
+    37	  while [ $i -lt 600 ]; do
+    38	    [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health)" = 200 ] && { log "server ready after ${i}s"; return 0; }
+    39	    pgrep -f "llama-server -m" >/dev/null || { log "server died during load"; return 1; }
+    40	    sleep 1; i=$((i+1))
+    41	  done
+    42	  log "server not ready in 600s"; return 1
+    43	}
+    44	evict() {
+    45	  mkdir -p "$ROOT/scratch"
+    46	  if [ ! -f "$ROOT/scratch/evict.bin" ]; then
+    47	    log "creating 24GB evict file"; dd if=/dev/zero of="$ROOT/scratch/evict.bin" bs=16m count=1536 2>>"$LOG"
+    48	    cool 300
+    49	  fi
+    50	  log "evicting cache by reading evict file"; dd if="$ROOT/scratch/evict.bin" of=/dev/null bs=16m 2>>"$LOG"
+    51	}
+    52	run_cfg() {  # $1=label $2=threads $3=ubatch
+    53	  cool 1200
+    54	  T0=$(trips)
+    55	  stop_server
+    56	  scripts/start_server.sh "$1" "$2" "$3" &
+    57	  if ! wait_ready; then stop_server; log "$1 skipped (load failed/tripped)"; [ "$(trips)" -gt "$T0" ] && cool 1800; return; fi
+    58	  cool 300
+    59	  evict
+    60	  cool 120
+    61	  log "start bench $1 (t=$2 ub=$3)"
+    62	  python3 -I scripts/agent_bench.py --label "$1" --n 64 --pause 300 > "logs/$1_console.log" 2>&1
+    63	  log "bench $1 exit=$? : $(tr '\n' ' ' < logs/$1_console.log)"
+    64	  stop_server
+    65	  check_swap
+    66	  [ "$(trips)" -gt "$T0" ] && { log "$1 因熱保護中止"; cool 1800; }
+    67	}
+    68	
+    69	rm -f "$ROOT/logs/overnight_done"
+    70	pgrep -f thermal_guard.sh >/dev/null || scripts/thermal_guard.sh &
+    71	log "overnight v3 start (trips so far: $(trips))"
+    72	
+    73	run_cfg agent_ub2048 -1 2048
+    74	run_cfg agent_ub512 -1 512
+    75	
+    76	UB=$(python3 -I - <<'PY'
+    77	import glob, json
+    78	def t1(label):
+    79	    for f in sorted(glob.glob(f"/Volumes/LLM SSD/Flashback/logs/{label}_2*.jsonl"), reverse=True):
+    80	        for l in open(f):
+    81	            r = json.loads(l)
+    82	            if r["turn"] == "t1_long":
+    83	                return r["prompt_ms"]
+    84	    return None
+    85	a, b = t1("agent_ub512"), t1("agent_ub2048")
+    86	print(512 if (a is not None and (b is None or a < b)) else 2048)
+    87	PY
+    88	)
+    89	log "chosen ubatch for C: $UB"
+    90	for T in 8 2; do
+    91	  run_cfg "agent_t${T}_ub${UB}" "$T" "$UB"
+    92	done
+    93	finish "全部完成"
+
+Assistant: The script imports helpers and is launched by other scripts; let me read scripts/start_server.sh too.
+[tool call] read {"path": "scripts/start_server.sh"}
+
+[tool result]
+     1	#!/bin/sh
+     2	# 用法：scripts/start_server.sh <label> [threads] [ubatch]
+     3	# 主實驗設定：共用層在 GPU，專家層 -ot "exps=CPU" 經 mmap 留在 SSD，上下文 4096，不暖機。
+     4	# --no-repack：預防 CPU repack 把專家層複製進一般記憶體。
+     5	# GGML_METAL_NO_RESIDENCY=1：與試跑設定一致（試跑時用來排查啟動預讀，保留以維持可比性）。
+     6	# 注意：llama.cpp 啟動時會對整個檔案 MADV_WILLNEED 預讀（約 2 分 40 秒），冷啟動要在載入完成後 sudo purge。
+     7	ROOT="/Volumes/LLM SSD/Flashback"
+     8	LABEL="$1"; THREADS="${2:--1}"; UB="${3:-512}"
+     9	export GGML_METAL_NO_RESIDENCY=1
+    10	exec llama-server -m "$ROOT/models/gpt-oss-120b-MXFP4.gguf" \
+    11	  -ngl 999 -ot "exps=CPU" --no-repack -c 4096 -t "$THREADS" -b 2048 -ub "$UB" --no-warmup \
+    12	  --host 127.0.0.1 --port 8080 -np 1 \
+    13	  > "$ROOT/logs/server_${LABEL}_$(date +%Y%m%d_%H%M%S).log" 2>&1
+
+Assistant: The script imports helpers and is launched by other scripts; let me read scripts/thermal_guard.sh too.
+[tool call] read {"path": "scripts/thermal_guard.sh"}
+
+[tool result]
+     1	#!/bin/sh
+     2	# 熱保護（使用者要求：不過熱優先於實驗成功）
+     3	# 每 10 秒讀 macOS 熱壓力等級（0=正常 1=中等 2=重 3=更重 4=睡眠）。
+     4	# 只要 llama-server 或量測正在執行且等級 >=1，就立刻停掉兩者（SIGKILL），並留下 logs/THERMAL_TRIP_* 標記。
+     5	# 閒置時只記錄等級、不計跳脫。logs/overnight_done 出現後結束。
+     6	ROOT="/Volumes/LLM SSD/Flashback"
+     7	while [ ! -f "$ROOT/logs/overnight_done" ]; do
+     8	  L=$(notifyutil -g com.apple.system.thermalpressurelevel | awk '{print $2}')
+     9	  echo "$(date '+%T') $L" >> "$ROOT/logs/thermal_level.log"
+    10	  if [ "${L:-0}" -ge 1 ] && pgrep -f "llama-server -m|agent_bench.py|evict.bin" >/dev/null; then
+    11	    echo "$(date '+%F %T') THERMAL TRIP level=$L -> stopping bench and server" >> "$ROOT/logs/overnight.log"
+    12	    touch "$ROOT/logs/THERMAL_TRIP_$(date '+%H%M%S')"
+    13	    pkill -f "agent_bench.py"; pkill -9 -f "llama-server -m"; pkill -f "evict.bin"
+    14	    sleep 60
+    15	  fi
+    16	  sleep 10
+    17	done
+
+Now continue. Plan the change briefly, then make the first edit.

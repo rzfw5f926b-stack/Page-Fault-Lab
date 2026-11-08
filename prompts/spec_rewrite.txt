@@ -1,0 +1,122 @@
+Below is scripts/bench.py. Change the default of --rounds from 3 to 5 and the default of --n from 256 to 128. Output the COMPLETE updated file in a single python code block, unchanged apart from those two defaults. Do not add any explanation.
+
+```python
+#!/usr/bin/env python3
+"""Flashback 量測腳本：對 llama-server 或 Ollama 送固定提示詞，前後記錄 SSD 讀取量與 pageins。
+
+用法：
+  python3 -I scripts/bench.py llama --url http://127.0.0.1:8080 --label main_t6 --rounds 3 --n 256
+  python3 -I scripts/bench.py ollama --model gpt-oss:20b --label baseline --rounds 3 --n 256
+輸出：logs/<label>_<時間>.jsonl（每次請求一行）以及背景 iostat / vm_stat 每秒紀錄。
+"""
+import argparse, json, os, re, subprocess, sys, time, urllib.request
+
+ROOT = "/Volumes/LLM SSD/Flashback"
+PROMPTS = ["qa_zh", "code", "essay_zh"]
+
+
+def ssd_whole_disk():
+    out = subprocess.run(["diskutil", "info", "/Volumes/LLM SSD"], capture_output=True, text=True).stdout
+    # APFS 卷宗在合成容器上，要找實體磁碟：用 Physical Store 往回推
+    m = re.search(r"APFS Physical Store:\s+(disk\d+)", out)
+    if m:
+        return m.group(1)
+    return re.search(r"Part of Whole:\s+(disk\d+)", out).group(1)
+
+
+def disk_read_stats(disk):
+    """回傳 (累計傳輸 bytes, 累計傳輸次數)，取自 iostat -I（開機後累計，含讀寫；實驗期間幾乎只有讀）。"""
+    out = subprocess.run(["iostat", "-Id", "-c", "1", disk], capture_output=True, text=True).stdout
+    kbt, xfrs, mb = out.strip().splitlines()[-1].split()[:3]
+    return int(float(mb) * 1024 * 1024), int(xfrs)
+
+
+def vm_pageins():
+    out = subprocess.run(["vm_stat"], capture_output=True, text=True).stdout
+    get = lambda k: int(re.search(rf"{k}:\s+(\d+)", out).group(1))
+    return {"pageins": get("Pageins"), "swapins": get("Swapins"), "swapouts": get("Swapouts")}
+
+
+def post(url, payload, timeout=7200):
+    req = urllib.request.Request(url, data=json.dumps(payload).encode(),
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read())
+
+
+def run_llama(args, prompt):
+    payload = {"messages": [{"role": "user", "content": prompt}],
+               "max_tokens": args.n, "ignore_eos": True, "cache_prompt": False,
+               "temperature": 0.0, "seed": 42}
+    r = post(args.url + "/v1/chat/completions", payload)
+    t = r["timings"]
+    msg = r["choices"][0]["message"]
+    text = (msg.get("reasoning_content") or "") + "\n---\n" + (msg.get("content") or "")
+    return {"prompt_n": t["prompt_n"], "prompt_tps": t["prompt_per_second"],
+            "gen_n": t["predicted_n"], "gen_tps": t["predicted_per_second"],
+            "gen_ms": t["predicted_ms"], "prompt_ms": t["prompt_ms"], "text": text}
+
+
+def run_ollama(args, prompt):
+    payload = {"model": args.model, "messages": [{"role": "user", "content": prompt}],
+               "stream": False, "options": {"num_predict": args.n, "temperature": 0, "seed": 42}}
+    r = post("http://127.0.0.1:11434/api/chat", payload)
+    msg = r["message"]
+    text = (msg.get("thinking") or "") + "\n---\n" + (msg.get("content") or "")
+    return {"prompt_n": r.get("prompt_eval_count"),
+            "prompt_tps": r.get("prompt_eval_count", 0) / (r.get("prompt_eval_duration", 1) / 1e9),
+            "gen_n": r["eval_count"], "gen_tps": r["eval_count"] / (r["eval_duration"] / 1e9),
+            "gen_ms": r["eval_duration"] / 1e6, "prompt_ms": r.get("prompt_eval_duration", 0) / 1e6,
+            "text": text}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("backend", choices=["llama", "ollama"])
+    ap.add_argument("--url", default="http://127.0.0.1:8080")
+    ap.add_argument("--model", default="gpt-oss:20b")
+    ap.add_argument("--label", required=True)
+    ap.add_argument("--rounds", type=int, default=3)
+    ap.add_argument("--n", type=int, default=256)
+    ap.add_argument("--prompts", default=",".join(PROMPTS))
+    args = ap.parse_args()
+
+    disk = ssd_whole_disk()
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    base = f"{ROOT}/logs/{args.label}_{stamp}"
+    # 背景每秒紀錄
+    bg = [subprocess.Popen(["iostat", "-d", "-w", "1", disk], stdout=open(base + "_iostat.log", "w")),
+          subprocess.Popen(["vm_stat", "1"], stdout=open(base + "_vmstat.log", "w")),
+          # 每 10 秒記錄降頻狀態與記憶體壓力
+          subprocess.Popen(["/bin/sh", "-c", "while true; do date '+%T'; pmset -g therm | grep -v '^$'; "
+                            "memory_pressure | tail -1; sleep 10; done"],
+                           stdout=open(base + "_therm.log", "w"))]
+    print(f"SSD = {disk}, log = {base}.jsonl", flush=True)
+    try:
+        with open(base + ".jsonl", "w") as f:
+            for rnd in range(1, args.rounds + 1):
+                for p in args.prompts.split(","):
+                    prompt = open(f"{ROOT}/prompts/{p}.txt").read().strip()
+                    d0, v0, t0 = disk_read_stats(disk), vm_pageins(), time.time()
+                    res = (run_llama if args.backend == "llama" else run_ollama)(args, prompt)
+                    d1, v1, t1 = disk_read_stats(disk), vm_pageins(), time.time()
+                    rec = {"label": args.label, "round": rnd, "prompt": p, "wall_s": round(t1 - t0, 2),
+                           "ssd_read_MB": round((d1[0] - d0[0]) / 1e6, 1),
+                           "ssd_read_ops": d1[1] - d0[1],
+                           "pageins": v1["pageins"] - v0["pageins"],
+                           "swapins": v1["swapins"] - v0["swapins"],
+                           "swapouts": v1["swapouts"] - v0["swapouts"], **res}
+                    rec["ssd_MB_per_wall_s"] = round(rec["ssd_read_MB"] / max(rec["wall_s"], 1e-9), 1)
+                    rec["avg_read_KB"] = round(rec["ssd_read_MB"] * 1000 / max(rec["ssd_read_ops"], 1), 1)
+                    f.write(json.dumps(rec, ensure_ascii=False) + "\n"); f.flush()
+                    print(f"r{rnd} {p:9s} gen {res['gen_n']} tok @ {res['gen_tps']:.2f} t/s | "
+                          f"pp {res['prompt_tps']:.1f} t/s | SSD {rec['ssd_read_MB']} MB "
+                          f"({rec['avg_read_KB']} KB/op) | wall {rec['wall_s']}s", flush=True)
+    finally:
+        for p in bg:
+            p.terminate()
+
+
+if __name__ == "__main__":
+    main()
+```

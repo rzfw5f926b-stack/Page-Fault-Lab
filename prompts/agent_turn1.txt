@@ -1,0 +1,197 @@
+You are a coding agent running inside a terminal-based coding assistant. You help the user with software engineering tasks in their repository. Follow these rules strictly:
+
+- Be concise. Prefer making changes with tools over describing them.
+- Before editing a file you must read it. Never invent file contents.
+- Keep changes minimal and focused on the task. Do not refactor unrelated code.
+- After editing, run the relevant tests or a quick syntax check and report the result honestly.
+- Use the exact tool call format described below. One tool call per message.
+- Paths are relative to the repository root unless they start with "/".
+- If a command fails, read the error carefully and fix the root cause instead of retrying blindly.
+- Never run destructive commands (rm -rf, git reset --hard, force push) without asking the user.
+- When you are done, reply with a short summary of what changed and how it was verified.
+
+# Tools
+
+## read
+Read a file from the repository.
+Parameters:
+- path (string, required): file path
+- offset (integer, optional): first line to read, 1-based
+- limit (integer, optional): maximum number of lines
+Returns the file contents with line numbers.
+
+## edit
+Replace an exact string in a file.
+Parameters:
+- path (string, required)
+- old_string (string, required): text to replace; must match exactly and be unique
+- new_string (string, required): replacement text
+- replace_all (boolean, optional): replace every occurrence
+Returns "ok" or an error explaining why the match failed.
+
+## write
+Create or overwrite a file.
+Parameters:
+- path (string, required)
+- content (string, required)
+
+## bash
+Run a shell command in the repository root.
+Parameters:
+- command (string, required)
+- timeout_ms (integer, optional, default 120000)
+Returns stdout, stderr and the exit code.
+
+## grep
+Search file contents with a regular expression.
+Parameters:
+- pattern (string, required)
+- path (string, optional): directory or file to search
+- glob (string, optional): filter files, e.g. "*.py"
+Returns matching lines with file names and line numbers.
+
+## glob
+List files matching a pattern.
+Parameters:
+- pattern (string, required), e.g. "src/**/*.ts"
+
+## todo
+Maintain a short task list for multi-step work.
+Parameters:
+- items (array of {content, status}), status is one of pending, in_progress, completed
+
+# Environment
+- Platform: darwin
+- Shell: zsh
+- Python: 3.14
+- Repository root: /Users/dev/projects/flashback-tools
+- Git repository: yes, branch main, clean working tree
+
+# Conversation
+
+User: The benchmark script scripts/bench.py sometimes crashes when the llama server returns an error or times out, and then the background iostat/vm_stat processes keep running. Please (1) make the HTTP call robust: retry up to 2 times on connection errors with a short backoff, and record a failed request as a row with an "error" field instead of crashing, (2) make sure the background loggers are always terminated, even on Ctrl-C, and (3) add a --dry-run flag that prints the planned requests without sending them. Keep the output format of the .jsonl file backward compatible.
+
+Assistant: I'll start by reading the script.
+[tool call] read {"path": "scripts/bench.py"}
+
+[tool result]
+     1	#!/usr/bin/env python3
+     2	"""Flashback 量測腳本：對 llama-server 或 Ollama 送固定提示詞，前後記錄 SSD 讀取量與 pageins。
+     3	
+     4	用法：
+     5	  python3 -I scripts/bench.py llama --url http://127.0.0.1:8080 --label main_t6 --rounds 3 --n 256
+     6	  python3 -I scripts/bench.py ollama --model gpt-oss:20b --label baseline --rounds 3 --n 256
+     7	輸出：logs/<label>_<時間>.jsonl（每次請求一行）以及背景 iostat / vm_stat 每秒紀錄。
+     8	"""
+     9	import argparse, json, os, re, subprocess, sys, time, urllib.request
+    10	
+    11	ROOT = "/Volumes/LLM SSD/Flashback"
+    12	PROMPTS = ["qa_zh", "code", "essay_zh"]
+    13	
+    14	
+    15	def ssd_whole_disk():
+    16	    out = subprocess.run(["diskutil", "info", "/Volumes/LLM SSD"], capture_output=True, text=True).stdout
+    17	    # APFS 卷宗在合成容器上，要找實體磁碟：用 Physical Store 往回推
+    18	    m = re.search(r"APFS Physical Store:\s+(disk\d+)", out)
+    19	    if m:
+    20	        return m.group(1)
+    21	    return re.search(r"Part of Whole:\s+(disk\d+)", out).group(1)
+    22	
+    23	
+    24	def disk_read_stats(disk):
+    25	    """回傳 (累計傳輸 bytes, 累計傳輸次數)，取自 iostat -I（開機後累計，含讀寫；實驗期間幾乎只有讀）。"""
+    26	    out = subprocess.run(["iostat", "-Id", "-c", "1", disk], capture_output=True, text=True).stdout
+    27	    kbt, xfrs, mb = out.strip().splitlines()[-1].split()[:3]
+    28	    return int(float(mb) * 1024 * 1024), int(xfrs)
+    29	
+    30	
+    31	def vm_pageins():
+    32	    out = subprocess.run(["vm_stat"], capture_output=True, text=True).stdout
+    33	    get = lambda k: int(re.search(rf"{k}:\s+(\d+)", out).group(1))
+    34	    return {"pageins": get("Pageins"), "swapins": get("Swapins"), "swapouts": get("Swapouts")}
+    35	
+    36	
+    37	def post(url, payload, timeout=7200):
+    38	    req = urllib.request.Request(url, data=json.dumps(payload).encode(),
+    39	                                 headers={"Content-Type": "application/json"})
+    40	    with urllib.request.urlopen(req, timeout=timeout) as r:
+    41	        return json.loads(r.read())
+    42	
+    43	
+    44	def run_llama(args, prompt):
+    45	    payload = {"messages": [{"role": "user", "content": prompt}],
+    46	               "max_tokens": args.n, "ignore_eos": True, "cache_prompt": False,
+    47	               "temperature": 0.0, "seed": 42}
+    48	    r = post(args.url + "/v1/chat/completions", payload)
+    49	    t = r["timings"]
+    50	    msg = r["choices"][0]["message"]
+    51	    text = (msg.get("reasoning_content") or "") + "\n---\n" + (msg.get("content") or "")
+    52	    return {"prompt_n": t["prompt_n"], "prompt_tps": t["prompt_per_second"],
+    53	            "gen_n": t["predicted_n"], "gen_tps": t["predicted_per_second"],
+    54	            "gen_ms": t["predicted_ms"], "prompt_ms": t["prompt_ms"], "text": text}
+    55	
+    56	
+    57	def run_ollama(args, prompt):
+    58	    payload = {"model": args.model, "messages": [{"role": "user", "content": prompt}],
+    59	               "stream": False, "options": {"num_predict": args.n, "temperature": 0, "seed": 42}}
+    60	    r = post("http://127.0.0.1:11434/api/chat", payload)
+    61	    msg = r["message"]
+    62	    text = (msg.get("thinking") or "") + "\n---\n" + (msg.get("content") or "")
+    63	    return {"prompt_n": r.get("prompt_eval_count"),
+    64	            "prompt_tps": r.get("prompt_eval_count", 0) / (r.get("prompt_eval_duration", 1) / 1e9),
+    65	            "gen_n": r["eval_count"], "gen_tps": r["eval_count"] / (r["eval_duration"] / 1e9),
+    66	            "gen_ms": r["eval_duration"] / 1e6, "prompt_ms": r.get("prompt_eval_duration", 0) / 1e6,
+    67	            "text": text}
+    68	
+    69	
+    70	def main():
+    71	    ap = argparse.ArgumentParser()
+    72	    ap.add_argument("backend", choices=["llama", "ollama"])
+    73	    ap.add_argument("--url", default="http://127.0.0.1:8080")
+    74	    ap.add_argument("--model", default="gpt-oss:20b")
+    75	    ap.add_argument("--label", required=True)
+    76	    ap.add_argument("--rounds", type=int, default=3)
+    77	    ap.add_argument("--n", type=int, default=256)
+    78	    ap.add_argument("--prompts", default=",".join(PROMPTS))
+    79	    args = ap.parse_args()
+    80	
+    81	    disk = ssd_whole_disk()
+    82	    stamp = time.strftime("%Y%m%d_%H%M%S")
+    83	    base = f"{ROOT}/logs/{args.label}_{stamp}"
+    84	    # 背景每秒紀錄
+    85	    bg = [subprocess.Popen(["iostat", "-d", "-w", "1", disk], stdout=open(base + "_iostat.log", "w")),
+    86	          subprocess.Popen(["vm_stat", "1"], stdout=open(base + "_vmstat.log", "w")),
+    87	          # 每 10 秒記錄降頻狀態與記憶體壓力
+    88	          subprocess.Popen(["/bin/sh", "-c", "while true; do date '+%T'; pmset -g therm | grep -v '^$'; "
+    89	                            "memory_pressure | tail -1; sleep 10; done"],
+    90	                           stdout=open(base + "_therm.log", "w"))]
+    91	    print(f"SSD = {disk}, log = {base}.jsonl", flush=True)
+    92	    try:
+    93	        with open(base + ".jsonl", "w") as f:
+    94	            for rnd in range(1, args.rounds + 1):
+    95	                for p in args.prompts.split(","):
+    96	                    prompt = open(f"{ROOT}/prompts/{p}.txt").read().strip()
+    97	                    d0, v0, t0 = disk_read_stats(disk), vm_pageins(), time.time()
+    98	                    res = (run_llama if args.backend == "llama" else run_ollama)(args, prompt)
+    99	                    d1, v1, t1 = disk_read_stats(disk), vm_pageins(), time.time()
+   100	                    rec = {"label": args.label, "round": rnd, "prompt": p, "wall_s": round(t1 - t0, 2),
+   101	                           "ssd_read_MB": round((d1[0] - d0[0]) / 1e6, 1),
+   102	                           "ssd_read_ops": d1[1] - d0[1],
+   103	                           "pageins": v1["pageins"] - v0["pageins"],
+   104	                           "swapins": v1["swapins"] - v0["swapins"],
+   105	                           "swapouts": v1["swapouts"] - v0["swapouts"], **res}
+   106	                    rec["ssd_MB_per_wall_s"] = round(rec["ssd_read_MB"] / max(rec["wall_s"], 1e-9), 1)
+   107	                    rec["avg_read_KB"] = round(rec["ssd_read_MB"] * 1000 / max(rec["ssd_read_ops"], 1), 1)
+   108	                    f.write(json.dumps(rec, ensure_ascii=False) + "\n"); f.flush()
+   109	                    print(f"r{rnd} {p:9s} gen {res['gen_n']} tok @ {res['gen_tps']:.2f} t/s | "
+   110	                          f"pp {res['prompt_tps']:.1f} t/s | SSD {rec['ssd_read_MB']} MB "
+   111	                          f"({rec['avg_read_KB']} KB/op) | wall {rec['wall_s']}s", flush=True)
+   112	    finally:
+   113	        for p in bg:
+   114	            p.terminate()
+   115	
+   116	
+   117	if __name__ == "__main__":
+   118	    main()
+
+Now continue. Plan the change briefly, then make the first edit.

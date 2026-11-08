@@ -1,0 +1,5 @@
+SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/trial32_20261108_015854.jsonl
+r1 qa_zh     gen 32 tok @ 0.39 t/s | pp 0.6 t/s | SSD 61911.8 MB (37.9 KB/op) | wall 269.93s
+r1 code      gen 32 tok @ 0.29 t/s | pp 0.5 t/s | SSD 72165.0 MB (37.1 KB/op) | wall 321.79s
+r1 essay_zh  gen 32 tok @ 0.43 t/s | pp 0.7 t/s | SSD 56942.2 MB (38.3 KB/op) | wall 251.52s
+exit=0
