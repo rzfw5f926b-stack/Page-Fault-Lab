@@ -29,11 +29,14 @@
 
 ```
 /Volumes/LLM SSD/Flashback/
-├── PLAN.md        ← 本文件
-├── models/        ← gpt-oss-120b-MXFP4.gguf（63.39GB）
-├── prompts/       ← 固定的測試提示詞（中文問答、寫程式、寫文章）
-├── logs/          ← llama.cpp、iostat、vm_stat 的原始紀錄
-└── RESULTS.md     ← 結果報告與購買建議
+├── README.md          ← 交接入口
+├── PLAN.md            ← 本文件
+├── RESULTS.md         ← 結果報告、購買建議、給 Mac mini 的交接建議
+├── EXPERIMENT_LOG.md  ← 依時間排列的完整過程
+├── models/            ← 120b、20b、EAGLE3 草稿頭、Qwen3-Coder（共約 95GB，不在 git 裡）
+├── scripts/           ← 伺服器、量測、排程、熱保護
+├── prompts/           ← 測試提示詞（代理多輪、改寫檔案等）
+└── logs/              ← llama.cpp、iostat、vm_stat、資源紀錄的原始檔
 ```
 
 ---
@@ -49,6 +52,7 @@
 
 ## 階段 1：對照組
 
+- [x] 第 6 項改用外接 SSD 上的 gpt-oss-20b 補做對照（2026-11-08 晚上）：全部放 GPU 46.4 tok/s，見 RESULTS.md
 - [~] ~~用 Ollama 跑 gpt-oss:20b~~ — **跳過**（2026-11-08，使用者決定）：Ollama 的模型存放在內建硬碟，違反「所有測試只跑在外接硬碟」原則。已跑到一半的紀錄移到 `logs/invalid_internal_disk/`，不採用
 - 這代表「不受硬碟影響」時這台機器的速度上限
 
@@ -150,6 +154,28 @@
 
 ---
 
+## 延伸研究（2026-11-08～09）
+
+使用者決定先在 Air 上把研究做完整，再交接給 Mac mini。結果摘要見 RESULTS.md，過程見 EXPERIMENT_LOG.md。
+
+- [x] 1. 硬碟隨機讀取延遲（`scripts/randread.py`）：同時 2～4 個讀取就到頂；24KB 146 MB/s，1MB 390 MB/s
+- [~] 2. 加大 ubatch 和 16k 上下文（`scripts/run_ubatch.sh`）：`-ub 8192` 讀長提示詞快 3.8 倍。白天兩次熱跳脫，4096、2048 沒有數據
+- [x] 3. 推測解碼（`scripts/run_spec.sh`）：ngram-mod 1.24×、ngram-simple 1.20×、EAGLE3 0.73×、20b 草稿 0.24×
+- [x] 4. 專家層固定在 GPU（`scripts/run_more.sh`）：固定 2 層持平、4 層慢 24%，不建議
+- [ ] 5. 模擬代理迴圈：Air 上沒有安裝 opencode，留到 Mac mini 上直接用 opencode 測
+- [x] 6. gpt-oss-20b 在同一顆 SSD 上的基準（`scripts/run_20b.sh`）：GPU 46.4、`exps=CPU` 22.6、GPU 加 ngram-mod 119.7 tok/s
+- [x] 7. Qwen3-Coder-30B-A3B 速度和品質（`scripts/run_qwen.sh`、`scripts/quality_bench.py`）：`exps=CPU` 1.75 tok/s，加 ngram 2.93；品質 6/6，20b 也是 6/6
+
+**散熱條件：** 11-08 白天沒有風扇時，熱保護跳脫 4 次。15:17 之後 Air 和 SSD 放在空氣清淨機出風口上，之後全程熱壓力 0。
+
+## 下一步：Mac mini（32GB，內建 SSD）
+
+1. 複製 `models/`、`scripts/`、`prompts/`，用 `shasum -a 256` 核對雜湊，再把腳本裡的 `ROOT` 改成新的路徑。
+2. **Qwen3-Coder-30B-A3B：** 先試 `EXPS=GPU`，不行再改 `exps=CPU`。跑 `spec_bench`、`agent_bench`（`--fmt chatml`）和 `quality_bench`，和 Air 的數字比較。
+3. **opencode 實測（第 5 項）：** 用 Qwen 和 20b 各做一個多檔案任務，記錄每輪等待時間和是否完成。準備比 quality_bench 更難的題目。
+4. **（選擇性）120b：** 用 `-ub 8192`、`--spec-type ngram-mod` 跑 `agent_bench`，確認每輪等待能不能壓到 1～2 分鐘以內。
+5. **（選擇性）補第 2 項：** `-ub 4096`、`-ub 2048` 在 16k 上下文的數據。
+
 ## 風險與注意事項
 
 - **主實驗時記憶體壓力會很高**：跑之前先關掉 Chrome 等吃記憶體的程式，隨時可以中止。
@@ -159,8 +185,8 @@
 
 ## 時間與產出
 
-| 項目 | 預估 |
-|---|---|
-| 下載 | 20 分鐘到 1.5 小時（視網速而定） |
-| 測試 | 30 到 60 分鐘 |
-| 產出 | `RESULTS.md`：實測數據、瓶頸分析、硬碟購買建議 |
+| 項目 | 原本預估 | 實際 |
+|---|---|---|
+| 下載 | 20 分鐘到 1.5 小時（視網速而定） | 120b 約 18 分鐘；另外三個模型約 10 分鐘 |
+| 測試 | 30 到 60 分鐘 | 主實驗一個通宵；延伸研究約一天，主要時間花在每組 20 分鐘的冷卻 |
+| 產出 | `RESULTS.md`：實測數據、瓶頸分析、硬碟購買建議 | 另有 EXPERIMENT_LOG.md 和給 Mac mini 的交接建議 |

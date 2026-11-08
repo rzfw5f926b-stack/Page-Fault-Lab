@@ -19,7 +19,11 @@
 
 ## 一句話結論（Air 上）
 
-能跑，但生成速度約 0.42 tok/s，每一輪代理對話要等 5～10 分鐘，對即時寫程式來說太慢。瓶頸約 96% 在 SSD 的小塊隨機讀取（每次約 24KB）。細節和後續測試見 RESULTS.md。
+- **120b 能跑，但太慢：** 生成約 0.42 tok/s，每一輪代理對話要等 5～10 分鐘，不適合即時寫程式。瓶頸約 96% 在 SSD 的小塊隨機讀取（每次約 24KB）。
+- **軟體調整都救不了：** ngram-mod 推測解碼快 1.24 倍，`-ub 8192` 讀長提示詞快 3.8 倍，其他方法反而更慢。
+- **Mac mini 最值得試的是 Qwen3-Coder-30B-A3B：** 品質小測驗 6/6。它在 Air 上記憶體不夠，32GB 應該放得下，但未驗證。
+
+細節和給 Mac mini 的建議見 RESULTS.md。
 
 ## 資料夾
 
@@ -35,15 +39,16 @@
 
 | 腳本 | 用途 |
 |---|---|
-| `start_server.sh` | 啟動 llama-server，主設定為 `-ngl 999 -ot "exps=CPU" --no-repack`。可用環境變數 `CTX`、`BATCH`、`EXTRA` 調整 |
-| `agent_bench.py` | 模擬 opencode 的多輪對話（長提示詞加上幾輪工具輸出），記錄速度、SSD 讀取量和 swap |
-| `spec_bench.py` | 推測解碼測試：要求模型改寫 bench.py，記錄生成速度和草稿接受率 |
+| `start_server.sh` | 啟動 llama-server，主設定為 `-ngl 999 -ot "exps=CPU" --no-repack`。環境變數：`MODEL`（模型檔名）、`EXPS=GPU`（整個模型放 GPU）、`CTX`、`BATCH`、`EXTRA`（例如推測解碼參數）、`PIN_OT`、`RESIDENCY` |
+| `agent_bench.py` | 模擬 opencode 的多輪對話（長提示詞加上幾輪工具輸出），記錄速度、SSD 讀取量和 swap。Qwen 要加 `--fmt chatml` |
+| `spec_bench.py` | 推測解碼測試：要求模型改寫 bench.py，記錄生成速度和草稿接受率。Qwen 要加 `--fmt chatml` |
+| `quality_bench.py` | 寫程式品質小測驗：6 題，用測試案例判定通過與否，適用任何模型 |
 | `bench.py` | 最早的量測腳本，對 llama-server 或 Ollama 送短提示詞 |
 | `randread.py` | 硬碟隨機讀取測試，比較不同讀取大小和排隊深度的 IOPS 與延遲 |
 | `thermal_guard.sh` | 熱保護：熱壓力 >= 1 就立刻停掉伺服器和量測，並留下 `logs/THERMAL_TRIP_*` |
 | `resource_log.sh` | 每 10 秒把 CPU、GPU、記憶體、swap、SSD 速度和熱壓力寫進 `logs/resources.csv` |
 | `watchdog.sh` | 早期的記憶體看門狗：RSS 或 swap 超過上限就停掉伺服器 |
-| `run_overnight.sh`、`run_ubatch.sh`、`run_spec.sh` | 各輪測試的排程，含冷卻和熱保護規則 |
+| `run_overnight.sh`、`run_ubatch.sh`、`run_spec.sh`、`run_more.sh`、`run_20b.sh`、`run_qwen.sh` | 各輪測試的排程（主實驗、第 2、3、4、6、7 項），含冷卻、熱保護和記憶體保護 |
 | `download_extra.sh` | 下載額外模型並核對 SHA256 |
 
 ### logs/
@@ -59,7 +64,8 @@
 
 | 檔案 | 內容 |
 |---|---|
-| `overnight.log`、`ubatch.log`、`spec.log` | 各輪排程的過程 |
+| `overnight.log`、`ubatch.log`、`spec.log`、`pin.log`、`b20.log`、`qwen.log` | 各輪排程的過程 |
+| `quality_work/` | 品質測驗時模型寫出的程式和測試 |
 | `resources.csv` | 12:24 之後連續的資源和溫度紀錄 |
 | `THERMAL_TRIP_<時分秒>` | 每次熱保護跳脫的時間點 |
 | `sha256.log`、`download*.log` | 下載和雜湊驗證 |
@@ -71,7 +77,8 @@
 1. 安裝 llama.cpp：`brew install llama.cpp`。這次測試用的是 0.9.0（b12110）。
 2. 把 `models/` 複製到 Mac mini，再用 `shasum -a 256` 和 logs 裡的雜湊比對。
 3. 腳本裡的 `ROOT` 寫死為 `/Volumes/LLM SSD/Flashback`，要改成新的路徑。路徑有空格，一律要加引號。
-4. 先跑 `scripts/start_server.sh`，再跑 `scripts/agent_bench.py`，就能直接和 Air 的數字比較。
+4. 先跑 `scripts/start_server.sh`，再跑 `scripts/agent_bench.py`、`spec_bench.py` 或 `quality_bench.py`，就能直接和 Air 的數字比較。
+5. 建議的測試順序見 PLAN.md 的「下一步：Mac mini」。
 
 ## 實驗守則
 
