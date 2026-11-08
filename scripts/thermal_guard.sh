@@ -7,10 +7,10 @@ ROOT="/Volumes/LLM SSD/Flashback"
 while [ ! -f "$ROOT/logs/overnight_done" ]; do
   L=$(notifyutil -g com.apple.system.thermalpressurelevel | awk '{print $2}')
   echo "$(date '+%T') $L" >> "$ROOT/logs/thermal_level.log"
-  if [ "${L:-0}" -ge 1 ] && pgrep -f "llama-server -m|agent_bench.py|evict.bin" >/dev/null; then
+  if [ "${L:-0}" -ge 1 ] && pgrep -f "llama-server -m|agent_bench.py|quality_bench.py|evict.bin" >/dev/null; then
     echo "$(date '+%F %T') THERMAL TRIP level=$L -> stopping bench and server" >> "$ROOT/logs/overnight.log"
     touch "$ROOT/logs/THERMAL_TRIP_$(date '+%H%M%S')"
-    pkill -f "agent_bench.py"; pkill -9 -f "llama-server -m"; pkill -f "evict.bin"
+    pkill -f "agent_bench.py"; pkill -f "quality_bench.py"; pkill -9 -f "llama-server -m"; pkill -f "evict.bin"
     sleep 60
   fi
   sleep 10

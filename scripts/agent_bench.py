@@ -20,6 +20,10 @@ def harmony(user_text):
     return f"<|start|>user<|message|>{user_text}<|end|><|start|>assistant"
 
 
+def chatml(user_text):  # 第 7 項：Qwen3-Coder 的對話格式
+    return f"<|im_start|>user\n{user_text}<|im_end|>\n<|im_start|>assistant\n"
+
+
 def thermal_level():
     out = subprocess.run(["notifyutil", "-g", "com.apple.system.thermalpressurelevel"],
                          capture_output=True, text=True).stdout.split()
@@ -43,6 +47,7 @@ def main():
     ap.add_argument("--n", type=int, default=64)
     ap.add_argument("--turns", default="t1_long,t2_followup,t3_followup")
     ap.add_argument("--t1", default="agent_turn1.txt", help="第 1 輪提示詞檔（prompts/ 底下），例如 agent_long.txt")
+    ap.add_argument("--fmt", default="harmony", choices=["harmony", "chatml"])
     ap.add_argument("--erase", action="store_true", help="開始前清掉伺服器的前綴快取（KV）")
     ap.add_argument("--pause", type=int, default=0,
                     help="每輪之間休息的秒數；休息後還要等熱壓力回到 0 才繼續（前綴快取會保留）")
@@ -80,7 +85,7 @@ def main():
                 if not first and args.pause:
                     rest(args.pause)
                 first = False
-                payload = {"prompt": harmony(convo), "n_predict": args.n, "ignore_eos": True,
+                payload = {"prompt": (chatml if args.fmt == "chatml" else harmony)(convo), "n_predict": args.n, "ignore_eos": True,
                            "cache_prompt": True, "temperature": 0.0, "seed": 42}
                 d0, v0, t0 = disk_read_stats(disk), vm_pageins(), time.time()
                 r = post(args.url + "/completion", payload)

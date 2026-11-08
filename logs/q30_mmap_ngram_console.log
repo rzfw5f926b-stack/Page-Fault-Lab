@@ -1,0 +1,1 @@
+q30_mmap_ngram: prompt 1929 in 77s | gen 96 @ 2.931 t/s | draft 73 acc 73 | SSD 22168.7 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/q30_mmap_ngram_20261108_234552.jsonl

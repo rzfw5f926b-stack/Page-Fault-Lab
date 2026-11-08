@@ -1,0 +1,37 @@
+2026-11-08 22:21:03 qwen test start (swap used 965MB, free 77%)
+2026-11-08 22:21:03 cooldown 1200 s
+2026-11-08 22:41:03 cool ok, level=0
+2026-11-08 22:41:03 start server q30_mmap MODEL=Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf EXPS=CPU EXTRA=[] (wired before: (2368M, free 78%)
+2026-11-08 22:41:58 server ready after 53s
+2026-11-08 22:41:58 footprint:     phys_footprint: 901 MB; wired: (3021M; free 73%
+0.00.221.105 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2026-11-08 22:41:58 cooldown 300 s
+2026-11-08 22:46:58 cool ok, level=0
+2026-11-08 22:48:57 spec q30_mmap exit=0 : q30_mmap: prompt 1929 in 64s | gen 96 @ 1.750 t/s | draft None acc None | SSD 22590.1 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/q30_mmap_20261108_224857.jsonl 
+2026-11-08 22:48:57 cooldown 300 s
+2026-11-08 22:53:57 cool ok, level=0
+2026-11-08 22:59:41 agent q30_mmap exit=0 : SSD = disk4, log = /Volumes/LLM SSD/Flashback/logs/q30_mmap_agent_20261108_225357.jsonl t1_long      prompt 3111 new (+3 cached) in 99s | gen 64 @ 3.37 t/s | SSD 24378.6 MB (44.4 KB/op) | wall 117.77s | swapouts 0   rest 60s t2_followup  prompt 209 new (+3108 cached) in 30s | gen 64 @ 3.35 t/s | SSD 9161.4 MB (37.4 KB/op) | wall 48.37s | swapouts 0   rest 60s t3_followup  prompt 347 new (+3311 cached) in 37s | gen 64 @ 3.17 t/s | SSD 11035.7 MB (38.2 KB/op) | wall 57.3s | swapouts 0 
+2026-11-08 22:59:41 cooldown 300 s
+2026-11-08 23:04:41 cool ok, level=0
+2026-11-08 23:18:23 quality q30_mmap exit=0 : parse_duration: PASS | gen 371 @ 4.1 t/s | wall 123.6s | finish stop merge_intervals: PASS | gen 171 @ 4.9 t/s | wall 54.2s | finish stop LRUCache: PASS | gen 155 @ 3.9 t/s | wall 73.1s | finish stop topo_sort: PASS | gen 261 @ 5.7 t/s | wall 70.0s | finish stop roman: PASS | gen 555 @ 5.1 t/s | wall 130.8s | finish stop fix_bug: PASS | gen 84 @ 2.2 t/s | wall 70.3s | finish stop q30_mmap_quality: 6/6 passed | /Volumes/LLM SSD/Flashback/logs/q30_mmap_quality_20261108_230441.jsonl 
+2026-11-08 23:18:23 swapouts since start: +0 pages, swap used 965 MB (start 965)
+2026-11-08 23:18:23 cooldown 1200 s
+2026-11-08 23:38:23 cool ok, level=0
+2026-11-08 23:38:23 start server q30_mmap_ngram MODEL=Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf EXPS=CPU EXTRA=[--spec-type ngram-mod] (wired before: (2317M, free 75%)
+2026-11-08 23:39:02 server ready after 38s
+2026-11-08 23:39:03 footprint:     phys_footprint: 916 MB; wired: (3011M; free 72%
+0.00.238.723 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+2026-11-08 23:39:03 cooldown 300 s
+2026-11-08 23:44:03 cool ok, level=0
+2026-11-08 23:45:52 spec q30_mmap_ngram exit=0 : q30_mmap_ngram: prompt 1929 in 77s | gen 96 @ 2.931 t/s | draft 73 acc 73 | SSD 22168.7 MB | swapouts 0 | /Volumes/LLM SSD/Flashback/logs/q30_mmap_ngram_20261108_234552.jsonl 
+2026-11-08 23:45:52 swapouts since start: +0 pages, swap used 965 MB (start 965)
+2026-11-08 23:45:52 cooldown 1200 s
+2026-11-09 00:05:52 cool ok, level=0
+2026-11-09 00:05:52 start server b20_quality MODEL=gpt-oss-20b-MXFP4.gguf EXPS=GPU EXTRA=[] (wired before: (2547M, free 77%)
+2026-11-09 00:06:28 server ready after 34s
+2026-11-09 00:06:28 footprint:     phys_footprint: 419 MB; wired: (14G; free 26%
+2026-11-09 00:06:28 cooldown 300 s
+2026-11-09 00:11:28 cool ok, level=0
+2026-11-09 00:19:27 quality b20_quality exit=0 : parse_duration: PASS | gen 3436 @ 45.0 t/s | wall 77.3s | finish stop merge_intervals: PASS | gen 672 @ 46.3 t/s | wall 15.5s | finish stop LRUCache: PASS | gen 427 @ 46.5 t/s | wall 9.8s | finish stop topo_sort: PASS | gen 1656 @ 45.9 t/s | wall 36.7s | finish stop roman: PASS | gen 1417 @ 45.1 t/s | wall 32.1s | finish stop fix_bug: PASS | gen 298 @ 46.6 t/s | wall 7.2s | finish stop b20_quality_quality: 6/6 passed | /Volumes/LLM SSD/Flashback/logs/b20_quality_quality_20261109_001128.jsonl 
+2026-11-09 00:19:27 swapouts since start: +0 pages, swap used 965 MB (start 965)
+2026-11-09 00:19:27 end: 全部完成

@@ -382,3 +382,61 @@ Mac mini 比 Air 多 8GB 記憶體。要決定這 8GB 怎麼用比較好：用�
 - 120b 主設定（專家層 exps=CPU）就算整個模型都在記憶體裡，也會受 CPU 算專家的限制。以 20b 的比例推算，120b 在不讀 SSD 時的上限大概是每秒十幾個 token 的等級，這只是推論，沒有量測。現在的 0.42 tok/s 離這個上限還很遠，所以瓶頸確實是 SSD，不是 CPU。
 - ngram-mod 在 Mac mini 上應該預設開啟：讀 SSD 時有約 1.2 倍的幫助，模型在記憶體裡時幫助更大，而且不佔額外記憶體。
 - 在 Air 上，20b 全部放 GPU（約 46 tok/s，加 ngram 在改寫類任務更快）仍是日常寫程式最實際的選擇。
+
+## 2026-11-08 22:21 起：第 7 項，Qwen3-Coder-30B-A3B 的速度和寫程式品質
+
+**為什麼：** Qwen3-Coder-30B-A3B 是專門寫程式的 MoE（總參數 30B，每個 token 用約 3B），Q4_K_M 約 18.6GB。它比 120b 小很多，在 Mac mini 32GB 上有機會整個放進記憶體。要知道它在 Air 上多快，寫程式的品質能不能取代 20b。
+
+**方法：**
+- 模型放不進 GPU：MTL0 上限約 17.8GiB，模型本身就約 17.3GiB。所以用和 120b 相同的主設定：專家層 `-ot exps=CPU` 經 mmap。
+- 原本的 spec_bench 和 agent_bench 寫死了 gpt-oss 的 harmony 對話格式，所以新增 `--fmt chatml` 選項給 Qwen 用。預設仍是 harmony，舊結果不受影響。
+- 新增 `scripts/quality_bench.py`：6 題寫程式小測驗，透過 `/v1/chat/completions` 讓伺服器套用模型自己的對話模板。題目是：
+  - parse_duration
+  - merge_intervals
+  - LRUCache
+  - topo_sort（同時可處理時依字母序，偵測循環）
+  - 羅馬數字雙向轉換
+  - 修 bug（top_words）
+
+  每題取出回答裡的程式碼，用固定測試在子程序執行（`python3 -I`，逾時 20 秒，暫存檔在 `logs/quality_work/`）。溫度 0，max_tokens 4096，題間休息 60 秒。測試案例先用自己寫的參考解答驗證過，6 題都通過。
+- 排程 `scripts/run_qwen.sh`，紀錄寫在 `logs/qwen.log`：
+  - `q30_mmap`：spec_bench、agent_bench、quality_bench
+  - `q30_mmap_ngram`：加 ngram-mod，只跑 spec_bench
+  - `b20_quality`：gpt-oss-20b 全部放 GPU，只跑 quality_bench，當品質對照
+- 熱保護 `thermal_guard.sh` 也加上 quality_bench.py，觸發時一起停掉。安全規則和第 6 項相同。
+- 開始時熱壓力 0、可用記憶體 77%、swap 965MB。
+
+### 第 7 項結果（11-09 00:19 全部完成）
+
+過程很順利：沒有熱保護跳脫，熱壓力全程 0，swap 維持 965MB，記憶體保護也沒有觸發。b20_quality 載入後 wired 14GB、可用記憶體 26%，仍高於 12% 的保護線。
+
+**Qwen3-Coder 速度（專家層 exps=CPU 經 mmap）：**
+
+| 量測 | 讀提示詞 | 生成速度 | 讀 SSD |
+|---|---|---|---|
+| spec_bench（1,929 token，生成 96） | 64 s | 1.75 tok/s | 22,590 MB |
+| spec_bench + ngram-mod | 77 s | 2.93 tok/s（1.67 倍，草稿 73/73） | 22,169 MB |
+| agent 第 1 輪（3,111 token 新提示詞） | 99 s | 3.37 tok/s，共 118 s | 24,379 MB |
+| agent 第 2 輪（+209） | 30 s | 3.35 tok/s，共 48 s | 9,161 MB |
+| agent 第 3 輪（+347） | 37 s | 3.17 tok/s，共 57 s | 11,036 MB |
+
+ngram 開關兩組的輸出完全相同（溫度 0）。
+
+**寫程式品質（6 題，溫度 0）：**
+
+| 模型 | 通過 | 生成 token 總數 | 總時間 | 平均速度 |
+|---|---|---|---|---|
+| Qwen3-Coder-30B-A3B（exps=CPU） | 6/6 | 1,597 | 522 s | 2.2～5.7 tok/s |
+| gpt-oss-20b（全部放 GPU） | 6/6 | 7,906（大部分是推理） | 179 s | 約 46 tok/s |
+
+**觀察：**
+- **Qwen 在 Air 上會一直重讀 SSD：** 生成 96 個 token 讀了 22.6GB，比整個模型檔（18.6GB）還大。推論是模型放不進可用的檔案快取：24GB 扣掉系統和其他程式，大約只剩 17GB。快取一直被擠出去再讀回來，所以反覆讀 SSD。
+- **Qwen 每個 token 約讀 235MB，但仍比 120b 快約 4 倍**（1.75 vs 0.42 tok/s），因為每個 token 用到的權重少很多（約 3B vs 約 5B 有效參數，量化格式也不同）。
+- **第 2、3 輪雖然有前綴快取，仍要讀 9～11GB：** 新增的 200～350 token 要經過所有層的專家，等於把大部分專家又掃一遍。
+- **品質測驗兩個模型都 6/6，分不出高下：** 題目太簡單，這個測驗只能說明兩者都能正確寫出這類常見函式。要比較寫程式能力，需要更難的題目，或在 opencode 裡實際做多檔案任務。
+- **輸出風格差很多：** Qwen 不推理，直接給程式碼，每題平均約 270 token。gpt-oss-20b 先推理，每題平均約 1,300 token，其中多數是推理內容。在 Air 上 20b 速度快 10 倍以上，所以總時間仍是 20b 短（179 s vs 522 s）。如果 Qwen 在 Mac mini 上能整個放進快取、速度大幅提升，「token 少」就會變成它的優勢。
+
+**對 Mac mini 的意義：**
+- Qwen3-Coder Q4_K_M（18.6GB）在 32GB 上應該可以整個放進檔案快取，甚至大部分放 GPU（mini 的 GPU 上限約 21～24GB，未查證）。速度可能從 Air 的 2～3 tok/s 大幅提升，這是最值得在 mini 上優先驗證的組合。
+- 在 Air 上不建議用 Qwen3-Coder：記憶體不夠，大部分時間都在讀 SSD。
+- 品質要用更難的測驗再比，見後續計畫。

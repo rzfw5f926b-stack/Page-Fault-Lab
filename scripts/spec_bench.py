@@ -13,10 +13,14 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--url", default="http://127.0.0.1:8080")
 ap.add_argument("--label", required=True)
 ap.add_argument("--n", type=int, default=160)
+ap.add_argument("--fmt", default="harmony", choices=["harmony", "chatml"], help="第 7 項：Qwen 用 chatml")
 a = ap.parse_args()
 user = open(f"{ROOT}/prompts/spec_rewrite.txt").read()
-prompt = (f"<|start|>user<|message|>{user}<|end|>"
-          f"<|start|>assistant<|channel|>final<|message|>```python\n")
+if a.fmt == "chatml":
+    prompt = f"<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant\n```python\n"
+else:
+    prompt = (f"<|start|>user<|message|>{user}<|end|>"
+              f"<|start|>assistant<|channel|>final<|message|>```python\n")
 disk = ssd_whole_disk()
 d0, v0, t0 = disk_read_stats(disk), vm_pageins(), time.time()
 r = post(a.url + "/completion", {"prompt": prompt, "n_predict": a.n, "ignore_eos": True,

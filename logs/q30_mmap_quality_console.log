@@ -1,0 +1,7 @@
+parse_duration: PASS | gen 371 @ 4.1 t/s | wall 123.6s | finish stop
+merge_intervals: PASS | gen 171 @ 4.9 t/s | wall 54.2s | finish stop
+LRUCache: PASS | gen 155 @ 3.9 t/s | wall 73.1s | finish stop
+topo_sort: PASS | gen 261 @ 5.7 t/s | wall 70.0s | finish stop
+roman: PASS | gen 555 @ 5.1 t/s | wall 130.8s | finish stop
+fix_bug: PASS | gen 84 @ 2.2 t/s | wall 70.3s | finish stop
+q30_mmap_quality: 6/6 passed | /Volumes/LLM SSD/Flashback/logs/q30_mmap_quality_20261108_230441.jsonl

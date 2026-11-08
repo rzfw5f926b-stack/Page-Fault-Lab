@@ -1,0 +1,7 @@
+parse_duration: PASS | gen 3436 @ 45.0 t/s | wall 77.3s | finish stop
+merge_intervals: PASS | gen 672 @ 46.3 t/s | wall 15.5s | finish stop
+LRUCache: PASS | gen 427 @ 46.5 t/s | wall 9.8s | finish stop
+topo_sort: PASS | gen 1656 @ 45.9 t/s | wall 36.7s | finish stop
+roman: PASS | gen 1417 @ 45.1 t/s | wall 32.1s | finish stop
+fix_bug: PASS | gen 298 @ 46.6 t/s | wall 7.2s | finish stop
+b20_quality_quality: 6/6 passed | /Volumes/LLM SSD/Flashback/logs/b20_quality_quality_20261109_001128.jsonl

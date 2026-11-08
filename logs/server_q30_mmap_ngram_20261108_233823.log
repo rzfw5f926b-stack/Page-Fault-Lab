@@ -1,0 +1,19 @@
+0.00.108.732 I srv  llama_server: initializing ...
+0.00.108.739 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.110.262 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.112.591 I srv    load_model: loading model '/Volumes/LLM SSD/Flashback/models/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf'
+0.00.224.016 W load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.238.723 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+0.34.190.244 I cmn          init: llama threadpool init, n_threads = 10
+0.38.439.057 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'false'
+0.38.446.285 I srv  server_run_i: model loaded
+0.38.446.288 I srv  server_on_li: listening on http://127.0.0.1:8080
+5.39.790.988 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+5.39.791.000 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+7.28.857.360 I slot print_timing: id  0 | task 0 | prompt eval time =   76655.63 ms /  1929 tokens (   39.74 ms per token,    25.16 tokens per second)
+7.28.857.364 I slot print_timing: id  0 | task 0 |        eval time =   32410.57 ms /    96 tokens (  341.16 ms per token,     2.93 tokens per second)
+7.28.857.365 I slot print_timing: id  0 | task 0 |       total time =  109066.19 ms /  2025 tokens
+7.28.857.365 I slot print_timing: id  0 | task 0 |    graphs reused =         19
+7.28.857.366 I slot print_timing: id  0 | task 0 |   graph reallocs =          0    /     0        (same size) / (changed size)
+7.28.857.390 I slot print_timing: id  0 | task 0 | draft acceptance = 1.00000 (   73 accepted /    73 generated), mean len = 37.50
+7.28.858.135 I slot      release: id  0 | task 0 | stop processing: n_tokens = 2024, truncated = 0
