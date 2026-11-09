@@ -29,3 +29,136 @@
 2026-11-09 12:45:02 air_oc_qwen_fmt_opencode exit=0 : invoice_rounding: 工具呼叫格式 OK | wall 519.5s | turns 2 (tool 2，文字殘留標記 0) | 工具 ['glob', 'read'] | 結果 {'glob:completed': 1, 'read:completed': 1} | max wait 98.513s air_oc_qwen_fmt: 工具呼叫格式 OK | /Volumes/LLM SSD/Flashback/logs/air_oc_qwen_fmt_20261109_123623.jsonl 
 2026-11-09 12:45:02 swapouts since start: +32 pages, swap used 845 MB (start 861)
 2026-11-09 12:45:02 end: Air Qwen 工具呼叫驗證結束
+2026-11-09 17:50:42 mini test start: Apple M5, 24 GB, swap used 845MB, free 77%
+2026-11-09 17:50:42 cooldown 1200 s
+2026-11-09 18:10:42 cool ok, level=0
+2026-11-09 18:10:42 start server air_mlx backend=mlx MODEL=Qwen3-0.6B-4bit EXPS=- EXTRA=[] CTX=8192 BATCH=2048 UB=2048 (free 77%)
+2026-11-09 18:11:20 server ready after 6s
+2026-11-09 18:11:21 probe 1 token: http=200, 1s
+2026-11-09 18:11:21 footprint:     phys_footprint: 696 MB; wired: (3167M; free 76%
+2026-11-09 18:11:21 cooldown 300 s
+2026-11-09 18:16:21 cool ok, level=0
+2026-11-09 18:23:41 air_mlx_quality exit=0 : parse_duration: FAIL | gen 4096 @ 0.0 t/s | wall 24.3s | finish length | 'tion.py", line 4, in <module>
+    assert parse_duration(\'1h30m15s\') == 5415
+           ^^^^^^^^^^^^^^
+NameError: name \'parse_duration\' is not defined
+' merge_intervals: PASS | gen 3434 @ 0.0 t/s | wall 19.0s | finish stop LRUCache: FAIL | gen 4096 @ 0.0 t/s | wall 24.0s | finish length | 'ck/logs/quality_work/air_mlx_quality_LRUCache.py", line 4, in <module>
+    c = LRUCache(2)
+        ^^^^^^^^
+NameError: name \'LRUCache\' is not defined
+' topo_sort: FAIL | gen 4096 @ 0.0 t/s | wall 24.0s | finish length | "n <module>
+    assert topo_sort({'b': ['a'], 'c': ['b'], 'a': []}) == ['a', 'b', 'c']
+           ^^^^^^^^^
+NameError: name 'topo_sort' is not defined
+" roman: FAIL | gen 4096 @ 0.0 t/s | wall 24.0s | finish length | 'k/air_mlx_quality_roman.py", line 4, in <module>
+    assert to_roman(1994) == \'MCMXCIV\'
+           ^^^^^^^^
+NameError: name \'to_roman\' is not defined
+' fix_bug: FAIL | gen 4096 @ 0.0 t/s | wall 24.5s | finish length | 'fix_bug.py", line 4, in <module>
+    assert top_words(\'b a B c a b\', 2) == [\'b\', \'a\']
+           ^^^^^^^^^
+NameError: name \'top_words\' is not defined
+' air_mlx_quality: 1/6 passed | /Volumes/LLM SSD/Flashback/logs/air_mlx_quality_20261109_181621.jsonl 
+2026-11-09 18:23:41 cooldown 300 s
+2026-11-09 18:28:41 cool ok, level=0
+2026-11-09 18:35:51 air_mlx_stream exit=0 : code.txt cold: prompt 74 | 首 token 0.412s | 生成 96 @ 218.06 t/s | 總 0.848s code.txt followup: prompt 381 | 首 token 0.129s | 生成 96 @ 227.97 t/s | 總 0.546s spec_rewrite.txt cold: prompt 1947 | 首 token 0.329s | 生成 96 @ 177.27 t/s | 總 0.865s spec_rewrite.txt followup: prompt 2254 | 首 token 0.132s | 生成 96 @ 166.98 t/s | 總 0.702s agent_turn1.txt cold: prompt 3133 | 首 token 0.563s | 生成 96 @ 151.28 t/s | 總 1.192s agent_turn1.txt followup: prompt 3440 | 首 token 0.189s | 生成 96 @ 144.67 t/s | 總 0.847s agent_long.txt cold: prompt 7876 | 首 token 1.579s | 生成 96 @ 84.63 t/s | 總 2.703s agent_long.txt followup: prompt 8183 | 首 token 0.276s | 生成 96 @ 85.24 t/s | 總 1.391s air_mlx_stream: 完成 | /Volumes/LLM SSD/Flashback/logs/air_mlx_stream_20261109_182841.jsonl 
+2026-11-09 18:35:51 swapouts since start: +0 pages, swap used 845 MB (start 845)
+2026-11-09 18:35:51 end: Air MLX 流程驗證結束
+2026-11-09 18:35:51 scrub_logs：清理 0 個紀錄檔，殘留 0 個
+2026-11-10 00:00:36 mini test start: Apple M6, 32 GB, swap used 3548MB, free 79%, PHASES=[1 3v 4]
+2026-11-10 00:00:36 第 0 階段：Ollama 對照
+2026-11-10 00:00:36 第 0 階段不在 PHASES，略過
+2026-11-10 00:00:36 第 1 階段：llama.cpp Qwen
+2026-11-10 00:00:36 cooldown 1200 s
+2026-11-10 00:20:36 cool ok, level=0
+2026-11-10 00:20:37 start server mini_q_gpu backend=llama MODEL=Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf EXPS=GPU EXTRA=[] CTX=8192 BATCH=2048 UB=2048 GGML_METAL_NO_RESIDENCY=1 (free 80%)
+2026-11-10 00:20:49 server ready after 12s
+2026-11-10 00:20:49 probe 1 token: http=200, 0s
+2026-11-10 00:20:50 footprint:     phys_footprint: 900 MB; wired: (22G; free 11%
+2026-11-10 00:20:50 cooldown 300 s
+2026-11-10 00:25:50 cool ok, level=0
+2026-11-10 00:25:55 mini_q_gpu exit=0 : mini_q_gpu: prompt 1926 in 3s | gen 96 @ 56.582 t/s | draft None acc None | SSD 1540.5 MB | swapouts 0 | /Users/Shared/Flashback/logs/mini_q_gpu_20261110_002555.jsonl 
+2026-11-10 00:25:55 cooldown 300 s
+2026-11-10 00:30:55 cool ok, level=0
+2026-11-10 00:33:04 mini_q_gpu_agent exit=0 : SSD = disk0, log = /Users/Shared/Flashback/logs/mini_q_gpu_agent_20261110_003055.jsonl t1_long      prompt 3111 new (+3 cached) in 4s | gen 64 @ 52.13 t/s | SSD 1249.7 MB (225.2 KB/op)，生成 0.3 MB/token | wall 5.26s | swapouts 0   rest 60s t2_followup  prompt 209 new (+3108 cached) in 1s | gen 64 @ 54.03 t/s | SSD 96.3 MB (115.2 KB/op)，生成 0.2 MB/token | wall 2.03s | swapouts 0   rest 60s t3_followup  prompt 347 new (+3311 cached) in 1s | gen 64 @ 53.60 t/s | SSD 118.3 MB (78.0 KB/op)，生成 0.0 MB/token | wall 2.22s | swapouts 0 
+2026-11-10 00:33:04 cooldown 300 s
+2026-11-10 00:38:04 cool ok, level=0
+2026-11-10 00:42:27 mini_q_gpu_quality exit=1 : parse_duration: PASS | gen 370 @ 61.8 t/s | wall 7.3s | finish stop merge_intervals: PASS | gen 171 @ 62.4 t/s | wall 3.6s | finish stop LRUCache: PASS | gen 155 @ 62.4 t/s | wall 3.2s | finish stop topo_sort: PASS | gen 301 @ 62.2 t/s | wall 5.6s | finish stop Traceback (most recent call last):   File "/Users/Shared/Flashback/scripts/quality_bench.py", line 189, in <module>     main()     ~~~~^^   File "/Users/Shared/Flashback/scripts/quality_bench.py", line 156, in main     r = post(a.url + "/v1/chat/completions",              {"messages": [{"role": "user", "content": prompt}], "max_tokens": a.max_tokens,               "temperature": 0.0, "seed": 42, "cache_prompt": False})   File "/Users/Shared/Flashback/scripts/bench.py", line 42, in post     with urllib.request.urlopen(req, timeout=timeout) as r:          ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen     return opener.open(url, data, timeout)            ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 487, in open     response = self._open(req, data)   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 504, in _open     result = self._call_chain(self.handle_open, protocol, protocol +                               '_open', req)   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain     result = func(*args)   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 1362, in http_open     return self.do_open(http.client.HTTPConnection, req)            ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 1337, in do_open     r = h.getresponse()   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 1478, in getresponse     response.begin()     ~~~~~~~~~~~~~~^^   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 343, in begin     version, status, reason = self._read_status()                               ~~~~~~~~~~~~~~~~~^^   File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 312, in _read_status     raise RemoteDisconnected("Remote end closed connection without"                              " response") http.client.RemoteDisconnected: Remote end closed connection without response 
+2026-11-10 00:42:27 問題：mini_q_gpu_quality 量測失敗（exit=1）
+2026-11-10 00:42:28 問題：mini_q_gpu_stream 沒有量測：伺服器已停止或熱保護跳脫
+2026-11-10 00:42:28 MEM_TRIP free=11% swap=4469MB (start 3548MB)
+2026-11-10 00:42:28 swapouts since start: +62560 pages, swap used 4469 MB (start 3548)
+2026-11-10 00:42:28 第 2 階段：MLX Qwen
+2026-11-10 00:42:28 第 2 階段不在 PHASES，略過
+2026-11-10 00:42:28 opencode 設定驗證：Qwen 跑 1 題，只確認設定可用，不算可靠度
+2026-11-10 00:42:29 opencode 版本：opencode v2.1.3
+2026-11-10 00:42:29 end: 記憶體保護已觸發，停止
+2026-11-10 00:42:29 scrub_logs：清理 0 個紀錄檔，殘留 1 個
+交接.md（還有殘留，推送前要處理）
+2026-11-10 01:12:42 mini test start: Apple M6, 32 GB, swap used 4421MB, free 80%, PHASES=[1 3v 4]
+2026-11-10 01:12:42 第 0 階段：Ollama 對照
+2026-11-10 01:12:42 第 0 階段不在 PHASES，略過
+2026-11-10 01:12:42 第 1 階段：llama.cpp Qwen
+2026-11-10 01:12:42 cooldown 1200 s
+2026-11-10 01:32:42 cool ok, level=0
+2026-11-10 01:32:42 start server mini_q_cpu backend=llama MODEL=Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf EXPS=CPU EXTRA=[] CTX=8192 BATCH=2048 UB=2048 GGML_METAL_NO_RESIDENCY=1 (free 80%)
+2026-11-10 01:32:48 server ready after 6s
+2026-11-10 01:32:50 probe 1 token: http=200, 2s
+2026-11-10 01:32:50 footprint:     phys_footprint: 896 MB; wired: (5558M; free 73%
+2026-11-10 01:32:50 cooldown 300 s
+2026-11-10 01:37:50 cool ok, level=0
+2026-11-10 01:38:13 mini_q_cpu exit=0 : mini_q_cpu: prompt 1926 in 15s | gen 96 @ 14.096 t/s | draft None acc None | SSD 9644.4 MB | swapouts 0 | /Users/Shared/Flashback/logs/mini_q_cpu_20261110_013813.jsonl 
+2026-11-10 01:38:13 cooldown 300 s
+2026-11-10 01:43:13 cool ok, level=0
+2026-11-10 01:45:42 mini_q_cpu_agent exit=0 : SSD = disk0, log = /Users/Shared/Flashback/logs/mini_q_cpu_agent_20261110_014313.jsonl t1_long      prompt 3111 new (+3 cached) in 8s | gen 64 @ 15.04 t/s | SSD 1452.4 MB (47.9 KB/op)，生成 1.7 MB/token | wall 12.39s | swapouts 0   rest 60s t2_followup  prompt 209 new (+3108 cached) in 3s | gen 64 @ 10.51 t/s | SSD 971.4 MB (38.6 KB/op)，生成 4.4 MB/token | wall 8.85s | swapouts 0   rest 60s t3_followup  prompt 347 new (+3311 cached) in 3s | gen 64 @ 13.11 t/s | SSD 802.9 MB (53.3 KB/op)，生成 0.9 MB/token | wall 7.98s | swapouts 0 
+2026-11-10 01:45:42 cooldown 300 s
+2026-11-10 01:50:42 cool ok, level=0
+2026-11-10 01:57:26 mini_q_cpu_quality exit=0 : parse_duration: PASS | gen 371 @ 15.4 t/s | wall 27.8s | finish stop merge_intervals: PASS | gen 171 @ 19.0 t/s | wall 10.8s | finish stop LRUCache: PASS | gen 155 @ 17.2 t/s | wall 10.6s | finish stop topo_sort: PASS | gen 261 @ 17.4 t/s | wall 16.4s | finish stop roman: PASS | gen 555 @ 18.7 t/s | wall 31.2s | finish stop fix_bug: PASS | gen 84 @ 17.5 t/s | wall 6.7s | finish stop mini_q_cpu_quality: 6/6 passed | /Users/Shared/Flashback/logs/mini_q_cpu_quality_20261110_015042.jsonl 
+2026-11-10 01:57:26 cooldown 300 s
+2026-11-10 02:02:26 cool ok, level=0
+2026-11-10 02:11:15 mini_q_cpu_stream exit=0 : code.txt cold: prompt 76 | 首 token 2.636s | 生成 96 @ 19.46 t/s | 總 7.517s | 伺服器 prompt 2.62s、19.46 t/s（客戶端差 +0.0%） code.txt followup: prompt 385 | 首 token 2.221s | 生成 96 @ 17.39 t/s | 總 7.683s | 伺服器 prompt 2.21s、17.39 t/s（客戶端差 -0.0%） spec_rewrite.txt cold: prompt 1943 | 首 token 6.078s | 生成 96 @ 16.49 t/s | 總 11.837s | 伺服器 prompt 6.02s、16.47 t/s（客戶端差 +0.1%） spec_rewrite.txt followup: prompt 2252 | 首 token 7.245s | 生成 96 @ 9.34 t/s | 總 17.414s | 伺服器 prompt 7.22s、9.34 t/s（客戶端差 -0.0%） agent_turn1.txt cold: prompt 3133 | 首 token 9.219s | 生成 96 @ 13.54 t/s | 總 16.238s | 伺服器 prompt 9.10s、13.53 t/s（客戶端差 +0.0%） agent_turn1.txt followup: prompt 3442 | 首 token 3.308s | 生成 96 @ 15.17 t/s | 總 9.57s | 伺服器 prompt 3.29s、15.17 t/s（客戶端差 +0.0%） agent_long.txt cold: prompt 7874 | 首 token 23.335s | 生成 96 @ 9.21 t/s | 總 33.653s | 伺服器 prompt 23.20s、9.20 t/s（客戶端差 +0.1%） agent_long.txt followup: prompt 8183 | 首 token 4.727s | 生成 9 @ 13.39 t/s | 總 5.325s | 伺服器 prompt 4.70s、13.34 t/s（客戶端差 +0.3%）（少於要求的 96，finish=length） mini_q_cpu_stream: 完成 | /Users/Shared/Flashback/logs/mini_q_cpu_stream_20261110_020226.jsonl 
+2026-11-10 02:11:15 swapouts since start: +0 pages, swap used 4357 MB (start 4421)
+2026-11-10 02:11:15 第 2 階段：MLX Qwen
+2026-11-10 02:11:16 第 2 階段不在 PHASES，略過
+2026-11-10 02:11:16 opencode 設定驗證：Qwen 跑 1 題，只確認設定可用，不算可靠度
+2026-11-10 02:11:16 opencode 版本：opencode v2.1.3
+2026-11-10 02:11:16 cooldown 1200 s
+2026-11-10 02:31:16 cool ok, level=0
+2026-11-10 02:31:17 start server mini_oc_qwen_verify_cpu backend=llama MODEL=Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf EXPS=CPU EXTRA=[--jinja] CTX=32768 BATCH=2048 UB=2048 GGML_METAL_NO_RESIDENCY=1 (free 78%)
+2026-11-10 02:31:20 server ready after 3s
+2026-11-10 02:31:21 probe 1 token: http=200, 1s
+2026-11-10 02:31:21 footprint:     phys_footprint: 3179 MB; wired: (7801M; free 64%
+2026-11-10 02:31:21 cooldown 300 s
+2026-11-10 02:36:21 cool ok, level=0
+2026-11-10 02:42:49 mini_oc_qwen_verify_cpu_opencode exit=0 : invoice_rounding : FAIL | 7 tests, 2 bad | wall 387.3s | turns 15 (tool 14) | max wait 33.263s | 10.03 t/s | draft 0/0 | http errors 0 invoice_rounding: 通過 0/1 | 結果 [False] | wall 平均 387.3s [387.3] | 輪數 [15] | t/s [10.03] mini_oc_qwen_verify_cpu: 0/1 passed | 工具失敗 0 次 | /Users/Shared/Flashback/logs/mini_oc_qwen_verify_cpu_20261110_023621.jsonl 
+2026-11-10 02:42:49 swapouts since start: +0 pages, swap used 4309 MB (start 4421)
+2026-11-10 02:42:49 第 3 階段：opencode
+2026-11-10 02:42:49 第 3 階段不在 PHASES，略過
+2026-11-10 02:42:49 第 4 階段：120b
+2026-11-10 02:42:49 cooldown 300 s
+2026-11-10 02:47:49 cool ok, level=0
+2026-11-10 02:47:49 start randread
+2026-11-10 02:53:50 randread exit=0 : log = /Users/Shared/Flashback/logs/randread_20261110_024749.jsonl     4KB QD 1:  13556 IOPS    55.5 MB/s lat 0.074 ms     4KB QD 2:  26638 IOPS   109.1 MB/s lat 0.075 ms     4KB QD 4:  52800 IOPS   216.3 MB/s lat 0.076 ms     4KB QD 8:  98315 IOPS   402.7 MB/s lat 0.081 ms     4KB QD16: 149759 IOPS   613.4 MB/s lat 0.106 ms     4KB QD32: 144213 IOPS   590.7 MB/s lat 0.221 ms    24KB QD 1:  11329 IOPS   278.4 MB/s lat 0.088 ms    24KB QD 2:  22275 IOPS   547.4 MB/s lat 0.090 ms    24KB QD 4:  42719 IOPS  1049.9 MB/s lat 0.093 ms    24KB QD 8:  75967 IOPS  1867.0 MB/s lat 0.105 ms    24KB QD16: 115526 IOPS  2839.2 MB/s lat 0.138 ms    24KB QD32: 146525 IOPS  3601.0 MB/s lat 0.218 ms    48KB QD 1:  10161 IOPS   499.4 MB/s lat 0.098 ms    48KB QD 2:  19590 IOPS   962.9 MB/s lat 0.102 ms    48KB QD 4:  36565 IOPS  1797.2 MB/s lat 0.109 ms    48KB QD 8:  61728 IOPS  3034.1 MB/s lat 0.129 ms    48KB QD16:  86698 IOPS  4261.4 MB/s lat 0.184 ms    48KB QD32: 103064 IOPS  5065.8 MB/s lat 0.310 ms   128KB QD 1:   8325 IOPS  1091.1 MB/s lat 0.120 ms   128KB QD 2:  16059 IOPS  2104.9 MB/s lat 0.124 ms   128KB QD 4:  28058 IOPS  3677.7 MB/s lat 0.142 ms   128KB QD 8:  39402 IOPS  5164.4 MB/s lat 0.203 ms   128KB QD16:  45473 IOPS  5960.2 MB/s lat 0.352 ms   128KB QD32:  47654 IOPS  6246.1 MB/s lat 0.671 ms  1024KB QD 1:   2984 IOPS  3129.0 MB/s lat 0.335 ms  1024KB QD 2:   6324 IOPS  6631.5 MB/s lat 0.316 ms  1024KB QD 4:   8346 IOPS  8751.7 MB/s lat 0.479 ms  1024KB QD 8:   9758 IOPS 10231.8 MB/s lat 0.819 ms  1024KB QD16:   9410 IOPS  9866.8 MB/s lat 1.699 ms  1024KB QD32:   9914 IOPS 10395.2 MB/s lat 3.225 ms 
+2026-11-10 02:53:50 cooldown 1200 s
+2026-11-10 03:13:50 cool ok, level=0
+2026-11-10 03:13:50 start server mini_120b_ub8192 backend=llama MODEL=gpt-oss-120b-MXFP4.gguf EXPS=CPU EXTRA=[] CTX=16384 BATCH=8192 UB=8192 GGML_METAL_NO_RESIDENCY=1 (free 78%)
+2026-11-10 03:14:11 server ready after 20s
+2026-11-10 03:14:49 probe 1 token: http=200, 38s
+2026-11-10 03:14:50 footprint:     phys_footprint: 1085 MB; wired: (8468M; free 55%
+2026-11-10 03:14:50 cooldown 300 s
+2026-11-10 03:19:50 cool ok, level=0
+2026-11-10 03:27:44 mini_120b_ub8192_agent exit=0 : SSD = disk0, log = /Users/Shared/Flashback/logs/mini_120b_ub8192_agent_20261110_031950.jsonl t1_long      prompt 7450 new (+0 cached) in 58s | gen 64 @ 1.74 t/s | SSD 100083.9 MB (31.8 KB/op)，生成 633.2 MB/token | wall 94.41s | swapouts 0   rest 300s t2_followup  prompt 209 new (+7446 cached) in 45s | gen 64 @ 1.88 t/s | SSD 80378.6 MB (30.0 KB/op)，生成 592.8 MB/token | wall 78.92s | swapouts 0 
+2026-11-10 03:27:44 swapouts since start: +0 pages, swap used 4245 MB (start 4421)
+2026-11-10 03:27:44 cooldown 1200 s
+2026-11-10 03:47:44 cool ok, level=0
+2026-11-10 03:47:44 start server mini_120b_ub8192_ngram backend=llama MODEL=gpt-oss-120b-MXFP4.gguf EXPS=CPU EXTRA=[--spec-type ngram-mod] CTX=16384 BATCH=8192 UB=8192 GGML_METAL_NO_RESIDENCY=1 (free 78%)
+2026-11-10 03:48:03 server ready after 18s
+2026-11-10 03:48:41 probe 1 token: http=200, 38s
+2026-11-10 03:48:42 footprint:     phys_footprint: 1101 MB; wired: (8395M; free 55%
+2026-11-10 03:48:42 cooldown 300 s
+2026-11-10 03:53:42 cool ok, level=0
+2026-11-10 04:01:34 mini_120b_ub8192_ngram_agent exit=0 : SSD = disk0, log = /Users/Shared/Flashback/logs/mini_120b_ub8192_ngram_agent_20261110_035342.jsonl t1_long      prompt 7450 new (+0 cached) in 56s | gen 64 @ 1.77 t/s | SSD 100527.0 MB (32.0 KB/op)，生成 631.6 MB/token | wall 91.95s | swapouts 0   rest 300s t2_followup  prompt 209 new (+7446 cached) in 45s | gen 64 @ 1.83 t/s | SSD 80962.8 MB (30.0 KB/op)，生成 599.4 MB/token | wall 79.79s | swapouts 0 
+2026-11-10 04:01:34 swapouts since start: +0 pages, swap used 4165 MB (start 4421)
+2026-11-10 04:01:34 end: 全部完成
+2026-11-10 04:01:34 scrub_logs：清理 0 個紀錄檔，殘留 1 個
+交接.md（還有殘留，推送前要處理）

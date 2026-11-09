@@ -1,0 +1,9 @@
+code.txt cold: prompt 74 | 首 token 0.412s | 生成 96 @ 218.06 t/s | 總 0.848s
+code.txt followup: prompt 381 | 首 token 0.129s | 生成 96 @ 227.97 t/s | 總 0.546s
+spec_rewrite.txt cold: prompt 1947 | 首 token 0.329s | 生成 96 @ 177.27 t/s | 總 0.865s
+spec_rewrite.txt followup: prompt 2254 | 首 token 0.132s | 生成 96 @ 166.98 t/s | 總 0.702s
+agent_turn1.txt cold: prompt 3133 | 首 token 0.563s | 生成 96 @ 151.28 t/s | 總 1.192s
+agent_turn1.txt followup: prompt 3440 | 首 token 0.189s | 生成 96 @ 144.67 t/s | 總 0.847s
+agent_long.txt cold: prompt 7876 | 首 token 1.579s | 生成 96 @ 84.63 t/s | 總 2.703s
+agent_long.txt followup: prompt 8183 | 首 token 0.276s | 生成 96 @ 85.24 t/s | 總 1.391s
+air_mlx_stream: 完成 | /Volumes/LLM SSD/Flashback/logs/air_mlx_stream_20261109_182841.jsonl

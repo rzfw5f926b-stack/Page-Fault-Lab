@@ -1,0 +1,45 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "local": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "local",
+      "options": {
+        "baseURL": "http://127.0.0.1:8081/v1",
+        "timeout": false
+      },
+      "models": {
+        "local-model": {
+          "name": "local-model",
+          "tool_call": true,
+          "limit": {
+            "context": 32768,
+            "output": 8192
+          }
+        }
+      }
+    }
+  },
+  "permission": {
+    "edit": "allow",
+    "bash": {
+      "*": "allow",
+      "sudo *": "deny",
+      "curl *": "deny",
+      "wget *": "deny",
+      "pip *": "deny",
+      "pip3 *": "deny",
+      "brew *": "deny",
+      "npm *": "deny",
+      "git push *": "deny",
+      "git remote *": "deny",
+      "ssh *": "deny",
+      "rm -rf /*": "deny",
+      "rm -rf ~*": "deny"
+    },
+    "external_directory": "deny",
+    "webfetch": "deny",
+    "websearch": "deny",
+    "task": "deny"
+  }
+}

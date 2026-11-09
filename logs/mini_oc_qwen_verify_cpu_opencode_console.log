@@ -1,0 +1,3 @@
+invoice_rounding : FAIL | 7 tests, 2 bad | wall 387.3s | turns 15 (tool 14) | max wait 33.263s | 10.03 t/s | draft 0/0 | http errors 0
+invoice_rounding: 通過 0/1 | 結果 [False] | wall 平均 387.3s [387.3] | 輪數 [15] | t/s [10.03]
+mini_oc_qwen_verify_cpu: 0/1 passed | 工具失敗 0 次 | /Users/Shared/Flashback/logs/mini_oc_qwen_verify_cpu_20261110_023621.jsonl

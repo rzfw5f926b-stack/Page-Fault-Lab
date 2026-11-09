@@ -1,0 +1,9 @@
+code.txt cold: prompt 76 | 首 token 2.636s | 生成 96 @ 19.46 t/s | 總 7.517s | 伺服器 prompt 2.62s、19.46 t/s（客戶端差 +0.0%）
+code.txt followup: prompt 385 | 首 token 2.221s | 生成 96 @ 17.39 t/s | 總 7.683s | 伺服器 prompt 2.21s、17.39 t/s（客戶端差 -0.0%）
+spec_rewrite.txt cold: prompt 1943 | 首 token 6.078s | 生成 96 @ 16.49 t/s | 總 11.837s | 伺服器 prompt 6.02s、16.47 t/s（客戶端差 +0.1%）
+spec_rewrite.txt followup: prompt 2252 | 首 token 7.245s | 生成 96 @ 9.34 t/s | 總 17.414s | 伺服器 prompt 7.22s、9.34 t/s（客戶端差 -0.0%）
+agent_turn1.txt cold: prompt 3133 | 首 token 9.219s | 生成 96 @ 13.54 t/s | 總 16.238s | 伺服器 prompt 9.10s、13.53 t/s（客戶端差 +0.0%）
+agent_turn1.txt followup: prompt 3442 | 首 token 3.308s | 生成 96 @ 15.17 t/s | 總 9.57s | 伺服器 prompt 3.29s、15.17 t/s（客戶端差 +0.0%）
+agent_long.txt cold: prompt 7874 | 首 token 23.335s | 生成 96 @ 9.21 t/s | 總 33.653s | 伺服器 prompt 23.20s、9.20 t/s（客戶端差 +0.1%）
+agent_long.txt followup: prompt 8183 | 首 token 4.727s | 生成 9 @ 13.39 t/s | 總 5.325s | 伺服器 prompt 4.70s、13.34 t/s（客戶端差 +0.3%）（少於要求的 96，finish=length）
+mini_q_cpu_stream: 完成 | /Users/Shared/Flashback/logs/mini_q_cpu_stream_20261110_020226.jsonl

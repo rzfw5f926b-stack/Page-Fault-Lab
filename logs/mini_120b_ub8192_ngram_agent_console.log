@@ -1,0 +1,4 @@
+SSD = disk0, log = /Users/Shared/Flashback/logs/mini_120b_ub8192_ngram_agent_20261110_035342.jsonl
+t1_long      prompt 7450 new (+0 cached) in 56s | gen 64 @ 1.77 t/s | SSD 100527.0 MB (32.0 KB/op)，生成 631.6 MB/token | wall 91.95s | swapouts 0
+  rest 300s
+t2_followup  prompt 209 new (+7446 cached) in 45s | gen 64 @ 1.83 t/s | SSD 80962.8 MB (30.0 KB/op)，生成 599.4 MB/token | wall 79.79s | swapouts 0

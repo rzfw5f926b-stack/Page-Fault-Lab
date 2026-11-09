@@ -1,0 +1,6 @@
+SSD = disk0, log = /Users/Shared/Flashback/logs/mini_q_gpu_agent_20261110_003055.jsonl
+t1_long      prompt 3111 new (+3 cached) in 4s | gen 64 @ 52.13 t/s | SSD 1249.7 MB (225.2 KB/op)，生成 0.3 MB/token | wall 5.26s | swapouts 0
+  rest 60s
+t2_followup  prompt 209 new (+3108 cached) in 1s | gen 64 @ 54.03 t/s | SSD 96.3 MB (115.2 KB/op)，生成 0.2 MB/token | wall 2.03s | swapouts 0
+  rest 60s
+t3_followup  prompt 347 new (+3311 cached) in 1s | gen 64 @ 53.60 t/s | SSD 118.3 MB (78.0 KB/op)，生成 0.0 MB/token | wall 2.22s | swapouts 0

@@ -1,0 +1,7 @@
+parse_duration: FAIL | gen 4096 @ 0.0 t/s | wall 24.3s | finish length | 'tion.py", line 4, in <module>\n    assert parse_duration(\'1h30m15s\') == 5415\n           ^^^^^^^^^^^^^^\nNameError: name \'parse_duration\' is not defined\n'
+merge_intervals: PASS | gen 3434 @ 0.0 t/s | wall 19.0s | finish stop
+LRUCache: FAIL | gen 4096 @ 0.0 t/s | wall 24.0s | finish length | 'ck/logs/quality_work/air_mlx_quality_LRUCache.py", line 4, in <module>\n    c = LRUCache(2)\n        ^^^^^^^^\nNameError: name \'LRUCache\' is not defined\n'
+topo_sort: FAIL | gen 4096 @ 0.0 t/s | wall 24.0s | finish length | "n <module>\n    assert topo_sort({'b': ['a'], 'c': ['b'], 'a': []}) == ['a', 'b', 'c']\n           ^^^^^^^^^\nNameError: name 'topo_sort' is not defined\n"
+roman: FAIL | gen 4096 @ 0.0 t/s | wall 24.0s | finish length | 'k/air_mlx_quality_roman.py", line 4, in <module>\n    assert to_roman(1994) == \'MCMXCIV\'\n           ^^^^^^^^\nNameError: name \'to_roman\' is not defined\n'
+fix_bug: FAIL | gen 4096 @ 0.0 t/s | wall 24.5s | finish length | 'fix_bug.py", line 4, in <module>\n    assert top_words(\'b a B c a b\', 2) == [\'b\', \'a\']\n           ^^^^^^^^^\nNameError: name \'top_words\' is not defined\n'
+air_mlx_quality: 1/6 passed | /Volumes/LLM SSD/Flashback/logs/air_mlx_quality_20261109_181621.jsonl

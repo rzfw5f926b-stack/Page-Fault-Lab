@@ -1,0 +1,4 @@
+SSD = disk0, log = /Users/Shared/Flashback/logs/mini_120b_ub8192_agent_20261110_031950.jsonl
+t1_long      prompt 7450 new (+0 cached) in 58s | gen 64 @ 1.74 t/s | SSD 100083.9 MB (31.8 KB/op)，生成 633.2 MB/token | wall 94.41s | swapouts 0
+  rest 300s
+t2_followup  prompt 209 new (+7446 cached) in 45s | gen 64 @ 1.88 t/s | SSD 80378.6 MB (30.0 KB/op)，生成 592.8 MB/token | wall 78.92s | swapouts 0

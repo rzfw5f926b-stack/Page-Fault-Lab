@@ -1,0 +1,40 @@
+parse_duration: PASS | gen 370 @ 61.8 t/s | wall 7.3s | finish stop
+merge_intervals: PASS | gen 171 @ 62.4 t/s | wall 3.6s | finish stop
+LRUCache: PASS | gen 155 @ 62.4 t/s | wall 3.2s | finish stop
+topo_sort: PASS | gen 301 @ 62.2 t/s | wall 5.6s | finish stop
+Traceback (most recent call last):
+  File "/Users/Shared/Flashback/scripts/quality_bench.py", line 189, in <module>
+    main()
+    ~~~~^^
+  File "/Users/Shared/Flashback/scripts/quality_bench.py", line 156, in main
+    r = post(a.url + "/v1/chat/completions",
+             {"messages": [{"role": "user", "content": prompt}], "max_tokens": a.max_tokens,
+              "temperature": 0.0, "seed": 42, "cache_prompt": False})
+  File "/Users/Shared/Flashback/scripts/bench.py", line 42, in post
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 487, in open
+    response = self._open(req, data)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 504, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 1362, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 1337, in do_open
+    r = h.getresponse()
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 1478, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 343, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py", line 312, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+                             " response")
+http.client.RemoteDisconnected: Remote end closed connection without response
