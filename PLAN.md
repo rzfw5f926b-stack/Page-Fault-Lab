@@ -174,8 +174,8 @@
 
 1. 複製 `models/`、`scripts/`、`prompts/`，用 `shasum -a 256` 核對雜湊。`run_mini.sh` 會自己算出專案路徑，不用改 `ROOT`；單獨跑其他腳本時要設 `FLASHBACK_ROOT`。
 2. **Qwen3-Coder-30B-A3B（llama.cpp）：** 先試 `EXPS=GPU`，不行再改 `exps=CPU`。跑 `spec_bench`、`agent_bench`（`--fmt chatml`）和 `quality_bench`，和 Air 的數字比較。
-3. **Qwen3-Coder-30B-A3B（MLX）：** 同一個模型的 MLX 版，和第 2 步比生成速度、首個 token 時間和長提示處理時間。M6 的 GPU 每核都有 Neural Accelerator，主要看提示處理能不能變快。比較時也要記下 MLX 沒有 ngram-mod 這類推測解碼的損失。需要 `scripts/stream_bench.py`（尚未實作），以及裝在專案內 `.venv-mlx/` 的 mlx-lm 和 MLX 版模型（下載前先確認）。
-4. **opencode 實測（第 5 項）：** 用 Qwen 和 20b 各做一個多檔案任務，記錄每輪等待時間、工具呼叫是否正常和是否完成。需要 `tasks/` 和 `scripts/run_opencode_tasks.sh`（尚未實作），題目要比 quality_bench 更難。
+3. **Qwen3-Coder-30B-A3B（MLX）：** 同一個模型的 MLX 版，和第 2 步比生成速度、首個 token 時間和長提示處理時間。M6 的 GPU 每核都有 Neural Accelerator，主要看提示處理能不能變快。mlx-lm 0.32.2 只有 `--draft-model` 草稿模型推測解碼，沒有 ngram-mod，比較時要記下這個差別。需要裝在專案內的 mlx-lm（`python3 -m venv .venv-mlx && .venv-mlx/bin/pip install mlx-lm`）和 `models/mlx/Qwen3-Coder-30B-A3B-4bit/`（下載前先確認）。
+4. **opencode 實測（第 5 項）：** 用 Qwen 和 20b 跑 `tasks/` 的四個多檔案題目，記錄每輪等待時間、工具呼叫是否正常和是否完成。安裝：`npm install --prefix .tools/opencode opencode-ai@1.19.5`。這版只收 V1 設定（`provider`、`permission`），官方文件寫的 V2 格式（`providers`、`permissions`）會被拒絕。換版本要先確認 `scripts/opencode_tasks.py` 的 `write_config`。題目用 `python3 -I scripts/opencode_tasks.py --validate` 驗證。工具已在 Air 上用 20b 驗證過（過程見 EXPERIMENT_LOG.md 2026-11-09）：真的工具呼叫正常，`stream_bench` 和伺服器數字對得上。Air 那次 invoice_rounding 的 FAIL 是舊題目文字造成的，不要和 mini 的結果直接比。
 5. **（選擇性）120b：** 用 `-ub 8192`、`--spec-type ngram-mod` 跑 `agent_bench`，確認每輪等待能不能壓到 1～2 分鐘以內。
 6. **（選擇性）補第 2 項：** `-ub 4096`、`-ub 2048` 在 16k 上下文的數據。
 

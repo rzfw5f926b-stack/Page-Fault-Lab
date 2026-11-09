@@ -1,0 +1,2 @@
+invoice_rounding: FAIL | 7 tests, 1 bad | wall 94.1s | turns 12 (tool 11) | max wait 20.653s | http errors 0
+air_oc_20b: 0/1 passed | /Volumes/LLM SSD/Flashback/logs/air_oc_20b_20261109_021057.jsonl

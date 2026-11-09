@@ -440,3 +440,48 @@ ngram 開關兩組的輸出完全相同（溫度 0）。
 - Qwen3-Coder Q4_K_M（18.6GB）在 32GB 上應該可以整個放進檔案快取，甚至大部分放 GPU（mini 的 GPU 上限約 21～24GB，未查證）。速度可能從 Air 的 2～3 tok/s 大幅提升，這是最值得在 mini 上優先驗證的組合。
 - 在 Air 上不建議用 Qwen3-Coder：記憶體不夠，大部分時間都在讀 SSD。
 - 品質要用更難的測驗再比，見後續計畫。
+
+## 2026-11-09：Mac mini 測試工具在 Air 上用 20b 驗證
+
+**目的：** 把 Mac mini（M6，32GB）要用的測試工具做完，並先在 Air 上用真的模型跑一次，避免到了 mini 才發現工具有問題。這一輪驗證的是工具，不是模型能力。
+
+**新增的工具：**
+- `scripts/stream_bench.py`：用 OpenAI 相容的串流 API，從客戶端量首個 token 時間和生成速度，llama.cpp 和 MLX 都能用。
+- `scripts/opencode_tasks.py`、`scripts/run_opencode_tasks.sh`：用真的 opencode 跑多檔案題目。中間的代理記錄每輪等待時間，隱藏測試判定對錯。
+- `tasks/`：四個多檔案題目（invoice_rounding、todo_priority、retry_refactor、calc_language）。`--validate` 確認原始程式會失敗、參考解答會全部通過。
+- 外接 SSD 上安裝了 mlx-lm 0.32.2（`.venv-mlx`，473MB）和 opencode-ai 1.19.5（`.tools`，445MB），都不進 git。
+
+**做工具時遇到的問題：**
+- opencode 1.19.5 只收 V1 設定（`provider`、`permission`）。官方文件寫的 V2（`providers`、`permissions`）會被拒絕。
+- 只設工作目錄不夠：opencode 從環境變數 `PWD` 找專案設定，沒設會報 `ProviderModelNotFoundError`。
+- `run_mini.sh` 的兩個問題：伺服器還沒 exec 就被判定死掉（加 5 秒寬限）；`pgrep || script &` 造成 subshell 互相等待（改成 `if ! pgrep; then script & fi`）。
+- calc_language 的參考解答在 `max(1)` 會當掉，已修正。
+
+**正式跑（`scripts/run_mini.sh --air-check`，01:11～02:12）：** 冷卻規則照舊（階段前 20 分鐘、量測前 5 分鐘）。全程熱壓力都是 0，沒有觸發熱保護，swap 維持 885MB（swapout +0）。
+
+**串流測速（gpt-oss-20b，全部放 GPU，ctx 8192，生成 96 token）：**
+
+| 提示詞 | 階段 | prompt token | 快取 token | 首 token | 客戶端 tok/s | 伺服器 tok/s |
+|---|---|---|---|---|---|---|
+| code.txt | 冷 | 128 | 0 | 0.86 s | 48.2 | 46.64 |
+| code.txt | 接續 | 437 | 129 | 0.78 s | 48.2 | 46.65 |
+| spec_rewrite.txt | 冷 | 1,965 | 60 | 2.50 s | 47.11 | 45.61 |
+| spec_rewrite.txt | 接續 | 2,268 | 1,966 | 1.08 s | 46.49 | 45.00 |
+| agent_turn1.txt | 冷 | 3,028 | 60 | 3.66 s | 45.91 | 44.45 |
+| agent_turn1.txt | 接續 | 3,337 | 3,029 | 0.91 s | 45.77 | 44.32 |
+| agent_long.txt | 冷 | 7,524 | 60 | 9.86 s | 43.08 | 41.51 |
+| agent_long.txt | 接續 | 7,833 | 7,525 | 1.73 s | 42.91 | 41.55 |
+
+**對帳：** 客戶端固定比伺服器高約 3.3%（有一筆 3.8%）。原因是 harmony 開頭有 3 個不串流的頻道 token，它們的時間算進了首 token，但生成速度的分子仍用 `96 - 1`。改用 `96 - 3 - 1 = 92` 重算後，8 筆裡有 7 筆和伺服器差不到 0.1%，agent_long 冷啟動差約 0.5%。結論是這個工具量得準；Qwen 沒有這段不串流的前綴，比較 llama.cpp 和 MLX 時不受影響。
+
+**opencode 試跑（20b，`--jinja`，ctx 32768，invoice_rounding）：**
+- 總共 94.1 s，12 輪，其中 11 輪有工具呼叫（read 4、edit 4、glob 2、write 1，全部成功），HTTP 錯誤 0。
+- 最久的等待是首 byte 20.65 s（第一輪約 10,400 token 的提示詞）。
+- 改了 `invoice.py`、`money.py`、`tax.py`，隱藏測試 7 題錯 1 題，判定 FAIL。
+- 錯的是 33% 折扣套在 50 分上：模型把折後金額 33.5 四捨五入成 34，測試要先把折扣 16.5 進位成 17，得到 33。
+
+**這題的判定要保留但不當作模型能力：** 原本 TASK.md 寫 "rounded half up to the cent"，沒說清楚是四捨五入折扣金額還是折後金額，模型的讀法也說得通。這是題目寫得不夠精確。已把規則改成明確的寫法並附上例子，參考解答和隱藏測試沒變，`--validate` 重跑通過。這筆 FAIL 是舊文字下的結果，Air 上沒有用新文字重跑，因為驗證工具的目的已經達到。另外三題逐條對過規格和隱藏測試，沒發現同樣的問題。
+
+**還發現一個工具問題：** opencode_tasks.py 為了比對改動在工作目錄建了 `.git`，留著會讓外層 repo 把它當成內嵌 repo，內容進不了 git。已改成判分後刪除，用假伺服器重跑確認；這次 air_oc_20b 的 `.git`（只有腳本產生的快照）也已刪除。
+
+**還沒驗證的：** MLX 伺服器配真的模型（模型還沒下載，留到 mini，下載前要確認）、M6 上的實際速度、Qwen 的工具呼叫。

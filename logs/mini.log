@@ -1,0 +1,20 @@
+2026-11-09 01:11:41 mini test start: Apple M5, 24 GB, swap used 885MB, free 81%
+2026-11-09 01:11:41 cooldown 1200 s
+2026-11-09 01:31:41 cool ok, level=0
+2026-11-09 01:31:41 start server air_20b_stream backend=llama MODEL=gpt-oss-20b-MXFP4.gguf EXPS=GPU EXTRA=[] CTX=8192 (free 81%)
+2026-11-09 01:32:18 server ready after 36s
+2026-11-09 01:32:19 footprint:     phys_footprint: 419 MB; wired: (14G; free 26%
+2026-11-09 01:32:19 cooldown 300 s
+2026-11-09 01:37:19 cool ok, level=0
+2026-11-09 01:44:57 air_20b_stream_stream exit=0 : code.txt cold: prompt 128 | 首 token 0.861s | 生成 96 @ 48.2 t/s | 總 2.835s | 伺服器 prompt 0.78s、46.64 t/s（客戶端差 +3.3%） code.txt followup: prompt 437 | 首 token 0.777s | 生成 96 @ 48.2 t/s | 總 2.748s | 伺服器 prompt 0.70s、46.65 t/s（客戶端差 +3.3%） spec_rewrite.txt cold: prompt 1965 | 首 token 2.497s | 生成 96 @ 47.11 t/s | 總 4.514s | 伺服器 prompt 2.40s、45.61 t/s（客戶端差 +3.3%） spec_rewrite.txt followup: prompt 2268 | 首 token 1.084s | 生成 96 @ 46.49 t/s | 總 3.128s | 伺服器 prompt 1.00s、45.00 t/s（客戶端差 +3.3%） agent_turn1.txt cold: prompt 3028 | 首 token 3.657s | 生成 96 @ 45.91 t/s | 總 5.726s | 伺服器 prompt 3.55s、44.45 t/s（客戶端差 +3.3%） agent_turn1.txt followup: prompt 3337 | 首 token 0.905s | 生成 96 @ 45.77 t/s | 總 2.981s | 伺服器 prompt 0.82s、44.32 t/s（客戶端差 +3.3%） agent_long.txt cold: prompt 7524 | 首 token 9.863s | 生成 96 @ 43.08 t/s | 總 12.069s | 伺服器 prompt 9.73s、41.51 t/s（客戶端差 +3.8%） agent_long.txt followup: prompt 7833 | 首 token 1.726s | 生成 96 @ 42.91 t/s | 總 3.94s | 伺服器 prompt 1.62s、41.55 t/s（客戶端差 +3.3%） air_20b_stream_stream: 完成 | /Volumes/LLM SSD/Flashback/logs/air_20b_stream_stream_20261109_013719.jsonl 
+2026-11-09 01:44:57 swapouts since start: +0 pages, swap used 885 MB (start 885)
+2026-11-09 01:44:57 cooldown 1200 s
+2026-11-09 02:04:57 cool ok, level=0
+2026-11-09 02:04:57 start server air_oc_20b backend=llama MODEL=gpt-oss-20b-MXFP4.gguf EXPS=GPU EXTRA=[--jinja] CTX=32768 (free 75%)
+2026-11-09 02:05:20 server ready after 22s
+2026-11-09 02:05:20 footprint:     phys_footprint: 995 MB; wired: (15G; free 18%
+2026-11-09 02:05:20 cooldown 300 s
+2026-11-09 02:10:20 cool ok, level=0
+2026-11-09 02:12:31 air_oc_20b_opencode exit=0 : invoice_rounding: FAIL | 7 tests, 1 bad | wall 94.1s | turns 12 (tool 11) | max wait 20.653s | http errors 0 air_oc_20b: 0/1 passed | /Volumes/LLM SSD/Flashback/logs/air_oc_20b_20261109_021057.jsonl 
+2026-11-09 02:12:31 swapouts since start: +0 pages, swap used 885 MB (start 885)
+2026-11-09 02:12:31 end: Air 驗證完成

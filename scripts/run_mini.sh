@@ -2,6 +2,7 @@
 # Mac mini（M6、32GB）的測試流程。用法：
 #   scripts/run_mini.sh --dry-run   只檢查環境、列出會做什麼，不載入模型、不寫紀錄（任何機器都能跑）
 #   scripts/run_mini.sh             正式執行，請放背景；只有 M6、32GB 以上的機器才會真的開始
+#   scripts/run_mini.sh --air-check 在 Air 上用 20b 驗證工具：stream_bench 對帳、opencode 試跑一題（冷卻和保護規則相同）
 #
 # 順序：
 #   第 1 階段  llama.cpp 跑 Qwen3-Coder：先試整個放 GPU（EXPS=GPU），載入失敗才退回 exps=CPU
@@ -10,17 +11,21 @@
 #
 # 第 2、3 階段依賴的東西缺了就跳過並記錄原因，不會下載或安裝任何東西：
 #   第 2 階段：scripts/stream_bench.py、$MLX_PY（裝好 mlx-lm 的 python）、$MLX_MODEL（MLX 模型資料夾）
-#   第 3 階段：opencode、tasks/、scripts/run_opencode_tasks.sh
-# 這兩支腳本的介面（尚未實作）：
-#   python3 -I scripts/stream_bench.py --url http://127.0.0.1:8080 --label <label>
-#   scripts/run_opencode_tasks.sh <label>
+#   第 3 階段：opencode（PATH 上或 .tools/opencode/）、tasks/、scripts/run_opencode_tasks.sh
 #
 # 安全規則同第 4、6、7 項：組間冷卻 20 分鐘且熱壓力 0；量測前冷卻 5 分鐘；thermal_guard 熱壓力 >=1 立即 SIGKILL；
 #   本輪跳脫 2 次全部停止；記憶體保護（可用 <12% 或 swap 多 1GB）立即 SIGKILL。不改任何系統設定。
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export FLASHBACK_ROOT="$ROOT"
-export DISK="${DISK:-disk0}"   # resource_log 量測的硬碟；模型放內建 SSD 時是 disk0
+MODE=mini; [ "$1" = "--air-check" ] && MODE=air
+if [ "$MODE" = air ]; then export DISK="${DISK:-disk4}"; else export DISK="${DISK:-disk0}"; fi   # resource_log 量測的硬碟；mini 的內建 SSD 是 disk0
 cd "$ROOT" || exit 1
+# opencode 裝在專案內時用它，設定和資料也留在專案內
+if [ -d "$ROOT/.tools/opencode/node_modules/.bin" ]; then
+  PATH="$ROOT/.tools/opencode/node_modules/.bin:$PATH"
+  export XDG_CONFIG_HOME="$ROOT/.tools/xdg/config" XDG_DATA_HOME="$ROOT/.tools/xdg/data" \
+    XDG_CACHE_HOME="$ROOT/.tools/xdg/cache" XDG_STATE_HOME="$ROOT/.tools/xdg/state"
+fi
 
 QWEN=Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf
 B20=gpt-oss-20b-MXFP4.gguf
@@ -39,11 +44,15 @@ ram_gb() { echo $(( $(sysctl -n hw.memsize) / 1073741824 )); }
 preflight() {
   bad=0
   echo "機器：$(chip)，$(ram_gb) GB，熱壓力 $(level)"
-  case "$(chip)" in *M6*) ;; *) echo "  ✗ 不是 M6，正式執行會被拒絕"; bad=$((bad+1));; esac
-  [ "$(ram_gb)" -ge 32 ] || { echo "  ✗ 記憶體不到 32 GB，正式執行會被拒絕"; bad=$((bad+1)); }
+  if [ "$MODE" = mini ]; then
+    case "$(chip)" in *M6*) ;; *) echo "  ✗ 不是 M6，正式執行會被拒絕"; bad=$((bad+1));; esac
+    [ "$(ram_gb)" -ge 32 ] || { echo "  ✗ 記憶體不到 32 GB，正式執行會被拒絕"; bad=$((bad+1)); }
+    [ -f "$ROOT/models/$QWEN" ] || { echo "  ✗ 缺模型 models/$QWEN"; bad=$((bad+1)); }
+  else
+    [ -f "$ROOT/models/$B20" ] || { echo "  ✗ 缺模型 models/$B20"; bad=$((bad+1)); }
+  fi
   [ "$(level)" = 0 ] || { echo "  ✗ 熱壓力不是 0"; bad=$((bad+1)); }
   command -v llama-server >/dev/null || { echo "  ✗ 找不到 llama-server"; bad=$((bad+1)); }
-  [ -f "$ROOT/models/$QWEN" ] || { echo "  ✗ 缺模型 models/$QWEN"; bad=$((bad+1)); }
   pgrep -f "$SRV" >/dev/null && { echo "  ✗ 已經有推論伺服器在跑"; bad=$((bad+1)); }
   return "$bad"
 }
@@ -98,7 +107,7 @@ mem_guard() {  # 背景：伺服器在跑時檢查記憶體
       F=$(memfree); U=$(swapused)
       if [ "${F:-100}" -lt 12 ] || [ $(( ${U:-0} - SW0 )) -gt 1024 ]; then
         T=$(date +%H%M%S); echo "free=${F}% swap=${U}MB" > "$ROOT/logs/MEM_TRIP_$T"
-        pkill -9 -f "$SRV"; pkill -9 -f spec_bench.py; pkill -9 -f agent_bench.py; pkill -9 -f quality_bench.py; pkill -9 -f stream_bench.py
+        pkill -9 -f "$SRV"; pkill -9 -f spec_bench.py; pkill -9 -f agent_bench.py; pkill -9 -f quality_bench.py; pkill -9 -f stream_bench.py; pkill -f opencode_tasks.py
         echo "$(date '+%F %T') MEM_TRIP free=${F}% swap=${U}MB (start ${SW0}MB)" >> "$LOG"
       fi
     fi
@@ -135,7 +144,7 @@ run_cfg() {
     MODEL="$4" EXPS="$5" EXTRA="$6" CTX="$9" BATCH=2048 scripts/start_server.sh "$1" -1 2048 &
     READY=/health
   else
-    "$MLX_PY" -m mlx_lm.server --model "$4" --host 127.0.0.1 --port 8080 > "logs/server_$1_$(date +%Y%m%d_%H%M%S).log" 2>&1 &
+    "$MLX_PY" -m mlx_lm server --model "$4" > "logs/server_$1_$(date +%Y%m%d_%H%M%S).log" 2>&1 &   # 預設 localhost:8080
     READY=/v1/models
   fi
   if ! wait_ready "$READY"; then
@@ -162,6 +171,17 @@ MT0=$(memtrips)
 mem_guard & MG=$!
 if ! pgrep -f resource_log.sh >/dev/null; then scripts/resource_log.sh & fi
 log "mini test start: $(chip), $(ram_gb) GB, swap used ${SW0}MB, free $(memfree)%"
+
+if [ "$MODE" = air ]; then
+  run_cfg air_20b_stream "$COOLDOWN" llama "$B20" GPU "" harmony stream 8192
+  M=$(opencode_missing | tr '\n' ' ')
+  if [ -z "$M" ]; then
+    OPENCODE_TASKS=invoice_rounding run_cfg air_oc_20b "$COOLDOWN" llama "$B20" GPU "--jinja" harmony opencode 32768
+  else
+    log "opencode 試跑跳過，缺 $M"
+  fi
+  finish "Air 驗證完成"
+fi
 
 log "第 1 階段：llama.cpp Qwen"
 run_cfg mini_q_gpu "$COOLDOWN" llama "$QWEN" GPU "" chatml spec,agent,quality,stream 8192 || {

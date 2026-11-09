@@ -6,3 +6,6 @@ models/
 .DS_Store
 __pycache__/
 *.pyc
+# 只在本機用的工具（虛擬環境、opencode），各機器自己安裝
+.venv-mlx/
+.tools/

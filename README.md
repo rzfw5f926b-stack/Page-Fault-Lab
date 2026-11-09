@@ -49,7 +49,9 @@
 | `resource_log.sh` | 每 10 秒把 CPU、GPU、記憶體、swap、SSD 速度和熱壓力寫進 `logs/resources.csv` |
 | `watchdog.sh` | 早期的記憶體看門狗：RSS 或 swap 超過上限就停掉伺服器 |
 | `run_overnight.sh`、`run_ubatch.sh`、`run_spec.sh`、`run_more.sh`、`run_20b.sh`、`run_qwen.sh` | 各輪測試的排程（主實驗、第 2、3、4、6、7 項），含冷卻、熱保護和記憶體保護 |
-| `run_mini.sh` | Mac mini 的測試流程：llama.cpp Qwen → MLX Qwen → opencode。`--dry-run` 只檢查環境；缺依賴的階段會跳過 |
+| `run_mini.sh` | Mac mini 的測試流程：llama.cpp Qwen → MLX Qwen → opencode。`--dry-run` 只檢查環境，`--air-check` 在 Air 上用 20b 驗證工具；缺依賴的階段會跳過 |
+| `stream_bench.py` | 通用測速：用 OpenAI 相容的串流 API 從客戶端量首個 token 時間和生成速度，llama.cpp 和 MLX 都適用 |
+| `opencode_tasks.py`、`run_opencode_tasks.sh` | 用 opencode 跑 `tasks/` 的多檔案題目：記錄代理量每輪等待時間，隱藏測試判定對錯。`--validate` 驗證題目本身 |
 | `download_extra.sh` | 下載額外模型並核對 SHA256 |
 
 ### logs/
