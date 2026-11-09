@@ -188,6 +188,9 @@ def make_proxy(target_host, target_port, rec, keep_body=False):
     return Server, Handler
 
 
+NO_CODE_MODE = [False]  # 有 --standalone 表示 opencode 2.x，要關掉 Code Mode
+
+
 def write_config(work, port):
     """opencode V1 設定（npm 的 opencode-ai 1.19.5 實測只收 V1，官方文件寫的 V2 格式會被拒絕）。
     不用 ask，避免非互動模式卡住。bash 規則是後面的優先。"""
@@ -201,6 +204,9 @@ def write_config(work, port):
                                                         "limit": {"context": 32768, "output": 8192}}}}},
            "permission": {"edit": "allow", "bash": bash, "external_directory": "deny", "webfetch": "deny",
                           "websearch": "deny", "task": "deny"}}
+    if NO_CODE_MODE[0]:
+        # 2.x 的系統提示會叫模型透過 execute 呼叫工具，但 execute 沙盒裡沒有 shell，模型因此跑不了測試
+        cfg["permission"]["execute"] = "deny"
     json.dump(cfg, open(f"{work}/opencode.json", "w"), indent=2)
 
 
@@ -212,6 +218,9 @@ def opencode_args(exe):
     except (OSError, subprocess.TimeoutExpired):
         help_text = ""
     args = []
+    # 2.x 預設交給背景服務執行，逾時只殺得到前端，模型會繼續佔用伺服器；有這個參數就用私有 server
+    if "--standalone" in help_text:
+        args += ["--standalone"]
     if "--model" in help_text:
         args += ["--model", f"local/{MODEL_ID}"]
     if "--format" in help_text:
@@ -306,12 +315,25 @@ def run_one(name, a, rec, extra, rep=1):
     gen_n = sum(t.get("predicted_n") or 0 for t in timing)
     gen_ms = sum(t.get("predicted_ms") or 0 for t in timing)
     tools = count_tools(out_path)
+    http_errors = sum(1 for c in calls if c.get("error") or (c.get("status") or 200) >= 400)
+    # 工具本身沒跑起來時，測試結果不代表模型的能力，要和「模型沒寫對」分開。逾時是模型太慢，不算工具失敗
+    tool_failure = []
+    if not timed_out and not stopped:
+        if not agent:
+            tool_failure.append("沒有任何代理請求")
+        if rc != 0:
+            tool_failure.append(f"opencode exit={rc}")
+        if any(c.get("tool_calls") for c in agent) and not tools:
+            tool_failure.append("模型有呼叫工具，但 opencode 的輸出解析不到工具結果")
+    if http_errors:
+        tool_failure.append(f"HTTP 錯誤 {http_errors} 次")
+    stdout_tail = open(out_path, errors="replace").read()[-600:] if tool_failure else ""
     return {"label": a.label, "task": name, "repeat": rep, "pass": passed, "tests": n, "failed": bad, "wall_s": round(wall, 1),
             "exit": rc, "timed_out": timed_out, "stopped_after_tool_turns": stopped, "turns": len(agent),
             "turns_with_tool_calls": sum(1 for c in agent if c.get("tool_calls")),
             "turns_with_raw_tool_markup": sum(1 for c in agent if c.get("raw_tool_markup")),
             "tool_names": [n for c in agent for n in c.get("tool_names", [])], "tool_results": tools,
-            "http_errors": sum(1 for c in calls if c.get("error") or (c.get("status") or 200) >= 400),
+            "http_errors": http_errors, "tool_failure": tool_failure, "stdout_tail": stdout_tail,
             "first_byte_s_max": max(waits, default=None), "turn_total_s_max": max(totals, default=None),
             "gen_tokens": gen_n, "gen_ms": round(gen_ms, 1), "gen_tps": round(gen_n / gen_ms * 1000, 2) if gen_ms else None,
             "draft_n": sum(t.get("draft_n") or 0 for t in timing),
@@ -327,6 +349,7 @@ def summarize(label, name, runs):
     return {"label": label, "kind": "summary", "task": name, "runs": len(runs), "passes": passes,
             "pass_rate": round(passes / len(runs), 3), "results": [r["pass"] for r in runs],
             "failed_tests": [r["failed"] for r in runs], "timed_out": sum(r["timed_out"] for r in runs),
+            "tool_failures": sum(1 for r in runs if r["tool_failure"]),
             "wall_s": walls, "wall_s_mean": round(sum(walls) / len(walls), 1), "turns": turns,
             "gen_tps": tps, "first_byte_s_max": max((r["first_byte_s_max"] or 0 for r in runs), default=None)}
 
@@ -365,6 +388,7 @@ def main():
     threading.Thread(target=proxy.serve_forever, daemon=True).start()
     names = a.tasks.split(",") if a.tasks else task_names()
     extra = opencode_args(a.opencode)
+    NO_CODE_MODE[0] = "--standalone" in extra
     os.makedirs(f"{ROOT}/logs/opencode_work/{a.label}", exist_ok=True)
     path = f"{ROOT}/logs/{a.label}_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
     runs = {n: [] for n in names}
@@ -391,7 +415,8 @@ def main():
                 print(f"{name} {tag}: {'PASS' if r['pass'] else 'FAIL'} | {r['tests']} tests, {r['failed']} bad | "
                       f"wall {r['wall_s']}s | turns {r['turns']} (tool {r['turns_with_tool_calls']}) | "
                       f"max wait {r['first_byte_s_max']}s | {r['gen_tps']} t/s | draft {r['draft_accepted']}/{r['draft_n']} | "
-                      f"http errors {r['http_errors']}" + (" | TIMEOUT" if r["timed_out"] else ""), flush=True)
+                      f"http errors {r['http_errors']}" + (" | TIMEOUT" if r["timed_out"] else "")
+                      + (f" | 工具失敗：{'、'.join(r['tool_failure'])}" if r["tool_failure"] else ""), flush=True)
         if a.stop_after_tool_turns:
             print(f"{a.label}: 工具呼叫格式 {'OK' if not format_bad else 'NG'} | {path}", flush=True)
             return 1 if format_bad else 0
@@ -402,8 +427,9 @@ def main():
                   f"{s['wall_s']} | 輪數 {s['turns']} | t/s {s['gen_tps']}", flush=True)
     total = sum(len(v) for v in runs.values())
     passed = sum(1 for v in runs.values() for r in v if r["pass"])
-    print(f"{a.label}: {passed}/{total} passed | {path}", flush=True)
-    return 0
+    tool_bad = sum(1 for v in runs.values() for r in v if r["tool_failure"])
+    print(f"{a.label}: {passed}/{total} passed | 工具失敗 {tool_bad} 次 | {path}", flush=True)
+    return 2 if tool_bad else 0
 
 
 if __name__ == "__main__":

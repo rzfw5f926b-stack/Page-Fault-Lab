@@ -159,10 +159,10 @@
 使用者決定先在 Air 上把研究做完整，再交接給 Mac mini。結果摘要見 RESULTS.md，過程見 EXPERIMENT_LOG.md。
 
 - [x] 1. 硬碟隨機讀取延遲（`scripts/randread.py`）：同時 2～4 個讀取就到頂；24KB 146 MB/s，1MB 390 MB/s
-- [~] 2. 加大 ubatch 和 16k 上下文（`scripts/run_ubatch.sh`）：`-ub 8192` 讀長提示詞快 3.8 倍。白天兩次熱跳脫，4096、2048 沒有數據
+- [~] 2. 加大 ubatch 和 16k 上下文（`scripts/run_ubatch.sh`）：`-ub 8192` 讀長提示詞約快 3.8 倍（不是同條件比較）。白天兩次熱跳脫，4096、2048 沒有數據
 - [x] 3. 推測解碼（`scripts/run_spec.sh`）：ngram-mod 1.24×、ngram-simple 1.20×、EAGLE3 0.73×、20b 草稿 0.24×
 - [x] 4. 專家層固定在 GPU（`scripts/run_more.sh`）：固定 2 層持平、4 層慢 24%，不建議
-- [ ] 5. 模擬代理迴圈：Air 上沒有安裝 opencode，留到 Mac mini 上直接用 opencode 測
+- [~] 5. 模擬代理迴圈：Air 上已用 opencode 1.19.5 驗證工具流程（20b 一題、Qwen 兩輪工具呼叫格式），多題實測留到 Mac mini
 - [x] 6. gpt-oss-20b 在同一顆 SSD 上的基準（`scripts/run_20b.sh`）：GPU 46.4、`exps=CPU` 22.6、GPU 加 ngram-mod 119.7 tok/s
 - [x] 7. Qwen3-Coder-30B-A3B 速度和品質（`scripts/run_qwen.sh`、`scripts/quality_bench.py`）：`exps=CPU` 1.75 tok/s，加 ngram 2.93；品質 6/6，20b 也是 6/6
 
@@ -176,10 +176,10 @@
 
 **第 0 階段，Ollama 對照：** Air 上的 29 vs 46 tok/s 模型檔、提示詞和散熱都不同，要在 mini 上重新比。三組都用同樣的提示詞、96 token、`num_ctx` 8192：Ollama 的 `gpt-oss:latest`（`/api/chat`）、llama-server 跑專案的 20b、llama-server 直接載入 Ollama 的 blob。第 1 組對第 3 組看引擎差距，第 2 組對第 3 組看模型檔差距；blob 載不起來時（架構名稱可能不相容）會記錄原因，這時第 1、2 組的差距就同時包含引擎和模型檔。Ollama 的 `num_batch` 是預設值，和 llama-server 的 2048 不同，會影響提示詞處理時間，比較時要記得。不要 `ollama rm gpt-oss:latest`，不要改 `OLLAMA_MODELS`，Codex總攬 在用。
 
-1. 複製 `models/`、`scripts/`、`prompts/`，用 `shasum -a 256` 核對雜湊。`run_mini.sh` 會自己算出專案路徑，不用改 `ROOT`；單獨跑其他腳本時要設 `FLASHBACK_ROOT`。
+1. 複製 `models/`、`scripts/`、`prompts/`，用 `shasum -a 256` 核對雜湊。複製約 95GB 後，Spotlight 或 Time Machine 可能還在處理，等系統靜下來再跑，否則會影響第 4 階段的硬碟量測。先 `brew update` 再裝 llama.cpp，流程要求 build 12110 以上、支援 `ngram-mod`，並要求 `python3` 3.11 以上（系統是 3.9 時會自動改用 Homebrew 的 `python3.14`）。第 0 階段比較 Ollama 時要記得，`start_server.sh` 固定設 `GGML_METAL_NO_RESIDENCY=1`，這不是 llama.cpp 的預設。`run_mini.sh` 會自己算出專案路徑，不用改 `ROOT`；單獨跑其他腳本時要設 `FLASHBACK_ROOT`。
 2. **Qwen3-Coder-30B-A3B（llama.cpp）：** 先試 `EXPS=GPU`，不行再改 `exps=CPU`。跑 `spec_bench`、`agent_bench`（`--fmt chatml`）和 `quality_bench`，和 Air 的數字比較。
-3. **Qwen3-Coder-30B-A3B（MLX）：** 同一個模型的 MLX 版，和第 2 步比生成速度、首個 token 時間和長提示處理時間。M6 的 GPU 每核都有 Neural Accelerator，主要看提示處理能不能變快。mlx-lm 0.32.2 只有 `--draft-model` 草稿模型推測解碼，沒有 ngram-mod，比較時要記下這個差別。需要裝在專案內的 mlx-lm（`python3 -m venv .venv-mlx && .venv-mlx/bin/pip install mlx-lm`）和 `models/mlx/Qwen3-Coder-30B-A3B-4bit/`（下載前先確認）。
-4. **opencode 實測（第 5 項）：** 三組：Qwen、Qwen 加 `--spec-type ngram-mod`、20b。`tasks/` 的四題每題跑 3 次（`OPENCODE_REPEATS` 可改），記錄通過率、次數間的差異、每輪等待時間和工具呼叫。ngram-mod 這組看的是實際代理任務有沒有幫助，RESULTS 的 1.24×、2.6× 都來自照抄輸入的改寫題。Qwen 的放法跟著第 1 階段：那裡已經退回 `exps=CPU` 就直接用 CPU，否則先試 GPU，`ctx 32768` 放不下再退回 CPU。每題上限 30 分鐘，12 次全部用滿的最壞情況是一組 6 小時。安裝：`npm install --prefix .tools/opencode opencode-ai@1.19.5`。這版只收 V1 設定（`provider`、`permission`），官方文件寫的 V2 格式（`providers`、`permissions`）會被拒絕。換版本要先確認 `scripts/opencode_tasks.py` 的 `write_config`。題目用 `python3 -I scripts/opencode_tasks.py --validate` 驗證。工具已在 Air 上用 20b 驗證過（過程見 EXPERIMENT_LOG.md 2026-11-09）：真的工具呼叫正常，`stream_bench` 和伺服器數字對得上。Air 那次 invoice_rounding 的 FAIL 是舊題目文字造成的，不要和 mini 的結果直接比。
+3. **Qwen3-Coder-30B-A3B（MLX）：** 同一個模型的 MLX 版，和第 2 步比生成速度、首個 token 時間和長提示處理時間。M6 的 GPU 每核都有 Neural Accelerator，主要看提示處理能不能變快。mlx-lm 0.32.2 只有 `--draft-model` 草稿模型推測解碼，沒有 ngram-mod，比較時要記下這個差別。需要裝在專案內的 mlx-lm（`python3.14 -m venv .venv-mlx && .venv-mlx/bin/pip install mlx-lm==0.32.2`，需要 Python 3.11 以上，Air 的 venv 不能帶過來）和 `models/mlx/Qwen3-Coder-30B-A3B-4bit/`（下載前先確認）。
+4. **opencode 實測（第 5 項）：** 三組：Qwen、Qwen 加 `--spec-type ngram-mod`、20b。`tasks/` 的四題每題跑 3 次（`OPENCODE_REPEATS` 可改），記錄通過率、次數間的差異、每輪等待時間和工具呼叫。ngram-mod 這組看的是實際代理任務有沒有幫助，RESULTS 的 1.24×、2.6× 都來自照抄輸入的改寫題。Qwen 的放法跟著第 1 階段：那裡已經退回 `exps=CPU` 就直接用 CPU，否則先試 GPU，`ctx 32768` 放不下再退回 CPU。每題上限 30 分鐘，12 次全部用滿的最壞情況是一組 6 小時。安裝：`npm install --prefix .tools/opencode opencode-ai@1.19.5`。這版只收 V1 設定（`provider`、`permission`），官方文件寫的 V2 格式（`providers`、`permissions`）會被拒絕。mini 的 Homebrew 是 2.1.3，npm 和 GitHub release 都拿不到這版，所以第 3 階段開始前會先用 20b 跑一題煙霧測試，確認設定、事件格式和專案設定的尋找方式，不通過就跳過整個階段；要指定版本時設 `OPENCODE_BIN`。opencode 的資料一律隔離在 `.tools/xdg`，不碰派工共用的資料。工具沒跑起來時（沒有請求、exit 非 0、HTTP 錯誤）會記成工具失敗，不算成模型沒通過。換版本要先確認 `scripts/opencode_tasks.py` 的 `write_config`。題目用 `python3 -I scripts/opencode_tasks.py --validate` 驗證。工具已在 Air 上用 20b 驗證過（過程見 EXPERIMENT_LOG.md 2026-11-09）：真的工具呼叫正常，`stream_bench` 和伺服器數字對得上。Air 那次 invoice_rounding 的 FAIL 是舊題目文字造成的，不要和 mini 的結果直接比。
 5. **第 4 階段，120b：** `models/` 必須放在內建 SSD，腳本在 mini 上預設量 `disk0`，放別處要自己設 `DISK`。內建硬碟上也有系統和其他帳號的讀寫，MB/token 可能略為偏高。先跑 `randread.py` 量這台硬碟的隨機讀取（約 6 分鐘），和 Air 的紀錄比，才能把 tok/s 的提升拆成硬碟和快取各佔多少：每個 token 讀多少 MB 主要反映快取，同樣的讀取量能多快讀完反映硬碟。接著用 `-c 16384 -b 8192 -ub 8192` 跑 `agent_bench`（`agent_long.txt`），有無 `--spec-type ngram-mod` 各一組，記錄 `ssd_MB_per_gen_token`（生成階段每個 token 讀多少 MB）。這組決定 120b 這條路要不要收掉：每輪等待能不能壓到 1～2 分鐘以內。同時驗證多 8GB 快取的效果：Air 是每個 token 約 580 MB，外推 mini 約 200～320 MB，尚未驗證。
 6. **（選擇性）補第 2 項：** `-ub 4096`、`-ub 2048` 在 16k 上下文的數據。
 

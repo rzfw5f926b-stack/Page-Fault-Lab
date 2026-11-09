@@ -7,7 +7,13 @@ ROOT="${FLASHBACK_ROOT:-/Volumes/LLM SSD/Flashback}"
 DISK="${DISK:-disk4}"   # 量測的硬碟；Air 的外接 SSD 是 disk4
 OUT="$ROOT/logs/resources.csv"
 [ -f "$OUT" ] || echo "time,thermal,cpu_user,cpu_sys,cpu_idle,gpu_util,gpu_mem_MB,physmem_used,wired_MB,compressor_MB,mem_free_pct,swap_used_MB,server_cpu,server_footprint_MB,ssd_MBps" > "$OUT"
-while pgrep -f "run_ubatch.sh|download_extra.sh|run_spec.sh|run_more.sh|run_20b.sh|run_qwen.sh|run_mini.sh" >/dev/null; do
+# 有指定 RESOURCE_LOG_OWNER 就只看那個行程。用 pgrep -f 比對腳本名稱時，
+# 從背景 shell 啟動（指令字串含 run_mini.sh）會比對到外層 shell，迴圈永遠停不了。
+still_running() {
+  if [ -n "$RESOURCE_LOG_OWNER" ]; then kill -0 "$RESOURCE_LOG_OWNER" 2>/dev/null
+  else pgrep -f "run_ubatch.sh|download_extra.sh|run_spec.sh|run_more.sh|run_20b.sh|run_qwen.sh|run_mini.sh" >/dev/null; fi
+}
+while still_running; do
   T=$(date '+%F %T')
   L=$(notifyutil -g com.apple.system.thermalpressurelevel | awk '{print $2}')
   TOP=$(top -l 1 -n 0)
@@ -28,5 +34,7 @@ while pgrep -f "run_ubatch.sh|download_extra.sh|run_spec.sh|run_more.sh|run_20b.
   else SC=""; SF=""; fi
   D=$(iostat -d -w 1 -c 2 "$DISK" 2>/dev/null | tail -1 | awk '{print $3}')
   echo "$T,$L,$CPU,$GU,$GM,$PM,$WIRED,$COMP,$FREE,$SW,$SC,$SF,$D" >> "$OUT"
+  # 共用機器上別人可能中途載入模型：每次取樣都記下 ollama ps，run_mini.sh 用來標記受影響的組別
+  command -v ollama >/dev/null && ollama ps 2>/dev/null | tail -n +2 | awk -v t="$T" 'NF {print t","$1}' >> "$ROOT/logs/ollama_ps.log"
   sleep 9
 done

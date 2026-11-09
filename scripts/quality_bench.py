@@ -170,13 +170,17 @@ def main():
                 ok, err = False, "timeout"
             passed += ok
             t = r.get("timings", {})
+            usage = r.get("usage") or {}  # MLX 沒有 timings，只有 usage
             rec = {"label": a.label, "task": name, "pass": ok, "error": err, "wall_s": round(time.time() - t0, 1),
-                   "gen_n": t.get("predicted_n"), "gen_tps": t.get("predicted_per_second"),
-                   "prompt_n": t.get("prompt_n"), "finish_reason": r["choices"][0].get("finish_reason"),
-                   "reasoning_chars": len(msg.get("reasoning_content") or ""), "content": content}
+                   "gen_n": t.get("predicted_n") or usage.get("completion_tokens"), "gen_tps": t.get("predicted_per_second"),
+                   "prompt_n": t.get("prompt_n") or usage.get("prompt_tokens"), "finish_reason": r["choices"][0].get("finish_reason"),
+                   # llama.cpp 用 reasoning_content，mlx-lm 用 reasoning
+                   "reasoning_chars": len(msg.get("reasoning_content") or msg.get("reasoning") or ""), "content": content}
             f.write(json.dumps(rec, ensure_ascii=False) + "\n"); f.flush()
-            print(f"{name}: {'PASS' if ok else 'FAIL'} | gen {rec['gen_n']} @ {rec['gen_tps'] or 0:.1f} t/s | "
-                  f"wall {rec['wall_s']}s | finish {rec['finish_reason']}" + ("" if ok else f" | {err[-150:]!r}"),
+            tps = f"{rec['gen_tps']:.1f} t/s" if rec["gen_tps"] else "速度未回報"
+            empty = f" | 內容是空的，思考 {rec['reasoning_chars']} 字" if not content.strip() else ""
+            print(f"{name}: {'PASS' if ok else 'FAIL'} | gen {rec['gen_n']} @ {tps} | "
+                  f"wall {rec['wall_s']}s | finish {rec['finish_reason']}{empty}" + ("" if ok else f" | {err[-150:]!r}"),
                   flush=True)
     print(f"{a.label}: {passed}/{len(TASKS)} passed | {out}", flush=True)
 

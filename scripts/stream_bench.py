@@ -6,6 +6,7 @@
   followup ：接著同一段對話追加約 200 token 的工具輸出，看前綴快取能省多少（模擬代理的下一輪）
 
 生成 token 數優先用伺服器回報的 usage，沒有就用收到的文字片段數。
+ignore_eos 只有 llama.cpp 支援；MLX 可能提早結束，所以紀錄裡有 requested_n，生成數不足時 console 會標出來。
 伺服器有回報 timings（llama.cpp）時一併記下，並印出和客戶端量測的差距，用來對帳。
 
 用法：python3 -I scripts/stream_bench.py --url http://127.0.0.1:8080 --label air_20b_stream
@@ -111,8 +112,10 @@ def main():
                     print(f"{name} {phase}: 失敗 {rec['error']}", flush=True)
                     break
                 rec.update(r)
+                rec["requested_n"] = a.n
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n"); f.flush()
-                print(describe(f"{name} {phase}", r), flush=True)
+                short = f"（少於要求的 {a.n}，finish={r['finish_reason']}）" if (r["gen_tokens"] or 0) < a.n else ""
+                print(describe(f"{name} {phase}", r) + short, flush=True)
                 messages = messages + [{"role": "assistant", "content": r["text"]}, {"role": "user", "content": add}]
     print(f"{a.label}: 完成 | {path}", flush=True)
     return 0

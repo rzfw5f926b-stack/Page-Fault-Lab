@@ -20,7 +20,7 @@
 ## 一句話結論（Air 上）
 
 - **120b 能跑，但太慢：** 生成約 0.42 tok/s，每一輪代理對話要等 5～10 分鐘，不適合即時寫程式。瓶頸約 96% 在 SSD 的小塊隨機讀取（每次約 24KB）。
-- **軟體調整都救不了：** ngram-mod 推測解碼快 1.24 倍，`-ub 8192` 讀長提示詞快 3.8 倍，其他方法反而更慢。
+- **軟體調整都救不了：** ngram-mod 推測解碼快 1.24 倍，`-ub 8192` 讀長提示詞約快 3.8 倍（不是同條件比較），其他方法反而更慢。
 - **Mac mini 最值得試的是 Qwen3-Coder-30B-A3B：** 品質小測驗 6/6。它在 Air 上記憶體不夠，32GB 應該放得下，但未驗證。
 
 細節和給 Mac mini 的建議見 RESULTS.md。
@@ -49,10 +49,11 @@
 | `resource_log.sh` | 每 10 秒把 CPU、GPU、記憶體、swap、SSD 速度和熱壓力寫進 `logs/resources.csv` |
 | `watchdog.sh` | 早期的記憶體看門狗：RSS 或 swap 超過上限就停掉伺服器 |
 | `run_overnight.sh`、`run_ubatch.sh`、`run_spec.sh`、`run_more.sh`、`run_20b.sh`、`run_qwen.sh` | 各輪測試的排程（主實驗、第 2、3、4、6、7 項），含冷卻、熱保護和記憶體保護 |
-| `run_mini.sh` | Mac mini 的測試流程：Ollama 對照 → llama.cpp Qwen → MLX Qwen → opencode → 120b。`--dry-run` 只檢查環境，`--air-check` 在 Air 上用 20b 驗證工具，`--air-qwen-tools` 驗證 Qwen 的工具呼叫格式；缺依賴的階段會跳過，並在結尾列出問題 |
+| `run_mini.sh` | Mac mini 的測試流程：Ollama 對照 → llama.cpp Qwen → MLX Qwen → opencode → 120b。`--dry-run` 只檢查環境，`--air-check` 在 Air 上用 20b 驗證工具，`--air-qwen-tools` 驗證 Qwen 的工具呼叫格式，`--air-mlx` 用小模型驗證 MLX 流程；缺依賴的階段會跳過，並在結尾列出問題 |
 | `stream_bench.py` | 通用測速：用 OpenAI 相容的串流 API 從客戶端量首個 token 時間和生成速度，llama.cpp 和 MLX 都適用 |
 | `ollama_bench.py` | Ollama 對照組：同樣的提示詞、生成長度和 `num_ctx`，走 `/api/chat`，並在生成途中記錄 `ollama ps`。開始前 `ollama ps` 要是空的，結束時只卸載自己載入的模型 |
 | `opencode_tasks.py`、`run_opencode_tasks.sh` | 用 opencode 跑 `tasks/` 的多檔案題目：記錄代理量每輪等待時間，隱藏測試判定對錯。`--repeats` 每題跑多次並統計通過率，`--stop-after-tool-turns` 只驗工具呼叫格式，`--validate` 驗證題目本身 |
+| `scrub_logs.sh` | 把 `logs/` 裡這台機器的家目錄、帳號和主機名稱換掉，再檢查整個 repo。`run_mini.sh` 結束時會自動跑，commit 前要再跑一次 |
 | `download_extra.sh` | 下載額外模型並核對 SHA256 |
 
 ### logs/
@@ -80,7 +81,7 @@
 
 1. 安裝 llama.cpp：`brew install llama.cpp`。這次測試用的是 0.9.0（b12110）。
 2. 把 `models/` 複製到 Mac mini，再用 `shasum -a 256` 和 logs 裡的雜湊比對。
-3. 腳本裡的 `ROOT` 寫死為 `/Volumes/LLM SSD/Flashback`，要改成新的路徑。路徑有空格，一律要加引號。
+3. `run_mini.sh` 會自己算出專案路徑；單獨跑其他腳本時要設 `FLASHBACK_ROOT`，路徑有空格時要加引號。
 4. 先跑 `scripts/start_server.sh`，再跑 `scripts/agent_bench.py`、`spec_bench.py` 或 `quality_bench.py`，就能直接和 Air 的數字比較。
 5. 建議的測試順序見 PLAN.md 的「下一步：Mac mini」。
 

@@ -516,3 +516,31 @@ ngram 開關兩組的輸出完全相同（溫度 0）。
 - opencode 沒有送 `temperature` 和 `seed`，所以 llama-server 用預設值，3 次重複會有隨機差異，這正是第 3 階段要量的。
 
 **這次發現的量測問題：** llama-server 處理提示詞時會送 SSE 心跳（只有 `:`），代理把它當成首個位元組。第 1 輪約 430 s 才開始生成（其中提示詞處理 361 s），紀錄的 `first_byte_s` 只有 98.5 s。已改成等到第一筆 `data:` 才計時，並用假伺服器確認。上面表格用的是伺服器回報的時間，不受影響。先前 20b 試跑的 20.65 s 有檢查過：提示詞處理 13.8 s，低於這個數字，沒有被心跳提早截斷。
+
+## 2026-11-09 晚：mini 審查回饋的處理與 MLX 流程驗證（Air）
+
+**分工：** mini 的 Claude 列了測試和腳本問題。B（MLX 流程）在 Air 用 `mlx-community/Qwen3-0.6B-4bit`（335 MB，放外接 SSD）驗證。A（opencode 2.1.3 相容性）移到 mini 開跑時的自動煙霧測試，因為 2.1.3 只有 git tag，沒有 release 或 npm 套件。
+
+**腳本修正：** `run_mini.sh` 新增 `--air-mlx`、XDG 隔離、Python 不足 3.11 時自動改用較新版本、llama.cpp build 下限檢查、1 token 探測、Ollama 中途載入標記、參數錯誤不退回 CPU、第 3 階段煙霧測試；新增 `scrub_logs.sh`；`opencode_tasks.py` 區分工具失敗（回傳 2）。文件修正 3.8×（兩組條件不同）和 ngram 的描述。假伺服器模擬 ok、gpufail、probefail、badarg、smokefail、midbusy、oldpy、busy，都符合預期。
+
+**MLX 實測（`--air-mlx`，17:50～18:35，含 20 分鐘冷卻）：** 伺服器就緒 6 s，1 token 探測 http=200、1 s，footprint 696 MB，swap +0，熱壓力 149 筆取樣全為 0。
+
+| 提示詞 | prompt token | 冷啟動首 token | 接續首 token | 冷啟動生成 | 接續生成 |
+|---|---|---|---|---|---|
+| code.txt | 74 / 381 | 0.412 s | 0.129 s | 218.06 t/s | 227.97 t/s |
+| spec_rewrite.txt | 1947 / 2254 | 0.329 s | 0.132 s | 177.27 t/s | 166.98 t/s |
+| agent_turn1.txt | 3133 / 3440 | 0.563 s | 0.189 s | 151.28 t/s | 144.67 t/s |
+| agent_long.txt | 7876 / 8183 | 1.579 s | 0.276 s | 84.63 t/s | 85.24 t/s |
+
+- 串流每次都生成到 96 token（usage 計數，chunk 91～94），首 token 計入思考內容。速度只驗證流程，沒有比較價值。
+- 品質題 1/6 通過（merge_intervals）。其餘 5 題內容為空、用完 4096 token、`finish=length`。原因推定是這個 0.6B 模型一直停在思考，原始思考文字當時沒有存下來，無法直接確認，但 mlx-lm 的 `server.py` 確實把思考放在 `reasoning` 欄位。這個分數不代表 Qwen3-Coder-30B。
+
+**這次抓到的問題（都已修）：**
+- `resource_log.sh` 用 `pgrep -f run_mini.sh` 判斷何時停，背景 shell 的指令字串也含 `run_mini.sh`，比對到外層後永遠不停，並佔住輸出管線。量測 18:35 結束，背景工作到 19:13 才收尾。改成看 `RESOURCE_LOG_OWNER` 的 PID，背景程序不繼承 stdout/stderr；另測 owner 結束後 10 s 內退出。
+- `quality_bench.py` 只讀 `reasoning_content`，MLX 的 `reasoning` 被算成 0 字；MLX 沒有 timings 時印 0.0 t/s。已修，內容為空時會直接標出。
+- XDG 隔離後 Hugging Face 快取資料夾不存在，MLX 的 `/v1/models` 回 200 後丟 `CacheNotFound`。`run_mini.sh` 改為先建立資料夾；`scan_cache_dir()` 單獨驗證通過。
+- 模擬留下的舊 `thermal_guard.sh`（12:46 啟動）一直在跑，被正式流程沿用，沒寫進正式的 `thermal_level.log`。殺程序的動作是全機比對的，這輪也沒有熱事件，對結果沒有影響。已手動結束。
+
+**opencode 路徑驗證（假伺服器）：** 假 opencode exit 3，回報「沒有任何代理請求、opencode exit=3」，程式回傳 2。真的 1.19.5：6 輪 `glob` 全部 completed，回傳 0。
+
+**未重跑：** 上述三項修正後沒有再跑一次完整的 `--air-mlx`，真實 MLX 配 Qwen3-Coder-30B 要到 mini 才驗證得到。
