@@ -485,3 +485,34 @@ ngram 開關兩組的輸出完全相同（溫度 0）。
 **還發現一個工具問題：** opencode_tasks.py 為了比對改動在工作目錄建了 `.git`，留著會讓外層 repo 把它當成內嵌 repo，內容進不了 git。已改成判分後刪除，用假伺服器重跑確認；這次 air_oc_20b 的 `.git`（只有腳本產生的快照）也已刪除。
 
 **還沒驗證的：** MLX 伺服器配真的模型（模型還沒下載，留到 mini，下載前要確認）、M6 上的實際速度、Qwen 的工具呼叫。
+
+## 2026-11-09：補齊 Mac mini 測試流程，驗證 Qwen 工具呼叫
+
+**目的：** 依審查意見補 `run_mini.sh`。mini 上不再有「不用內建硬碟」的限制，但機器是共用的。
+
+**流程改動：**
+- **第 0 階段，Ollama 對照（`scripts/ollama_bench.py`）：** 同提示詞、96 token、`num_ctx` 8192，比三組：Ollama 的 `gpt-oss:latest`、llama-server 跑專案的 20b、llama-server 直接載入 Ollama 的 blob。生成途中記錄 `ollama ps`，開頭記錄版本。不刪模型、不改 `OLLAMA_MODELS`，結束時只卸載自己載入的模型。
+- **第 3 階段：** Qwen 的放法跟著第 1 階段，GPU 放不下就退回 `exps=CPU`；加一組 `--spec-type ngram-mod`；每題跑 3 次並統計通過率。
+- **第 4 階段：** 先跑 `randread.py`，再跑 120b 的 `-ub 8192`，有無 ngram-mod 各一組。`agent_bench.py` 每秒取樣硬碟，得出生成階段每個 token 讀多少 MB（`ssd_MB_per_gen_token`）。
+- **preflight：** 開始前和每組之前都檢查 `ollama ps`、Ollama 的執行程序和其他重負載。
+- **結尾狀態：** 有跳過、載入失敗或量測失敗時會列出問題，不再寫「全部完成」。
+- **RESULTS.md：** 修正 #27149 的描述（只讀被選中的專家），並標明 0.65 tok/s 是我們自己的推算。
+
+**用假伺服器模擬整個流程時抓到的問題：**
+- preflight 的 `sed` 說明文字含 `ollama runner`，被 `pgrep -f` 比對到自己，真的上 mini 會永遠開不了跑。已改文字。
+- 模型路徑有空格時，用 `awk` 取 blob 路徑會被截斷。已改用 `sed`。
+- `randread.py` 的路徑寫死成外接 SSD。已改成跟著 `FLASHBACK_ROOT`。
+- 模擬測了 GPU 一律放不下、只有 ctx 32768 放不下、Ollama 已被占用、一般情況，以及 blob 架構不相容時的紀錄，流程都符合預期。短暫的系統程序（例如 `corespotlightd`）偶爾會讓 preflight 擋下開跑，重跑即可，或用 `ALLOW_BUSY=1`。真的 Ollama 沒有在 Air 上跑，因為 Air 不用內建硬碟的模型，第 0 階段要到 mini 才算驗證。
+
+**Qwen 工具呼叫格式（`scripts/run_mini.sh --air-qwen-tools`，12:09～12:45）：** Air，`exps=CPU`，`--jinja`，ctx 16384，opencode 跑 invoice_rounding，兩輪工具呼叫後停止。全程熱壓力 0，可用記憶體最低 53%，沒有觸發保護。
+
+| 輪 | 新處理 prompt | 提示詞處理 | 生成 | 總時間 | 工具呼叫 |
+|---|---|---|---|---|---|
+| 第 1 輪 | 11,879 token | 361 s | 55 token，29.5 s（1.83 tok/s） | 459 s | `glob`，`finish_reason=tool_calls` |
+| 第 2 輪 | 188 token | 25 s | 60 token，27.4 s（2.15 tok/s） | 53 s | `read`，`finish_reason=tool_calls` |
+
+- 工具呼叫解析成功：伺服器回傳的是結構化的 `tool_calls`，文字裡沒有殘留 `<tool_call>` 或 `<function=` 標記，opencode 兩個工具都執行完成。這次只驗格式，沒有判斷題目對錯。
+- 速度數字只代表 Air 記憶體不夠時的情況，不能拿來推 mini。
+- opencode 沒有送 `temperature` 和 `seed`，所以 llama-server 用預設值，3 次重複會有隨機差異，這正是第 3 階段要量的。
+
+**這次發現的量測問題：** llama-server 處理提示詞時會送 SSE 心跳（只有 `:`），代理把它當成首個位元組。第 1 輪約 430 s 才開始生成（其中提示詞處理 361 s），紀錄的 `first_byte_s` 只有 98.5 s。已改成等到第一筆 `data:` 才計時，並用假伺服器確認。上面表格用的是伺服器回報的時間，不受影響。先前 20b 試跑的 20.65 s 有檢查過：提示詞處理 13.8 s，低於這個數字，沒有被心跳提早截斷。

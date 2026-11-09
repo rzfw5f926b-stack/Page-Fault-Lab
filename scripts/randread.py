@@ -10,7 +10,7 @@
 """
 import argparse, fcntl, json, os, random, subprocess, threading, time
 
-ROOT = "/Volumes/LLM SSD/Flashback"
+ROOT = os.environ.get("FLASHBACK_ROOT", "/Volumes/LLM SSD/Flashback")
 MODEL = f"{ROOT}/models/gpt-oss-120b-MXFP4.gguf"
 F_NOCACHE = getattr(fcntl, "F_NOCACHE", 48)
 

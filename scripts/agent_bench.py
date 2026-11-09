@@ -7,7 +7,7 @@
 
 用法：python3 -I scripts/agent_bench.py --label agent_ub512 --n 64 [--erase]
 """
-import argparse, json, os, signal, subprocess, sys, time, urllib.request
+import argparse, json, os, signal, subprocess, sys, threading, time, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bench import ROOT, ssd_whole_disk, disk_read_stats, vm_pageins, post  # noqa: E402
@@ -38,6 +38,33 @@ def rest(seconds):
         time.sleep(30); waited += 30
         if waited >= 1800:
             raise SystemExit("熱壓力 30 分鐘未回到 0，停止")
+
+
+class DiskSampler(threading.Thread):
+    """每秒記錄硬碟累計位元組，用來把生成階段和提示詞階段的讀取量分開。"""
+
+    def __init__(self, disk):
+        super().__init__(daemon=True)
+        self.disk, self.samples, self.done = disk, [], threading.Event()
+
+    def run(self):
+        while not self.done.wait(1.0):
+            try:
+                self.samples.append((time.time(), disk_read_stats(self.disk)[0]))
+            except (OSError, ValueError, IndexError):
+                pass
+
+
+def bytes_at(samples, t):
+    """線性內插 t 時的累計位元組。"""
+    prev = samples[0]
+    for cur in samples:
+        if cur[0] >= t:
+            if cur[0] == prev[0]:
+                return cur[1]
+            return prev[1] + (cur[1] - prev[1]) * (t - prev[0]) / (cur[0] - prev[0])
+        prev = cur
+    return samples[-1][1]
 
 
 def main():
@@ -88,9 +115,17 @@ def main():
                 payload = {"prompt": (chatml if args.fmt == "chatml" else harmony)(convo), "n_predict": args.n, "ignore_eos": True,
                            "cache_prompt": True, "temperature": 0.0, "seed": 42}
                 d0, v0, t0 = disk_read_stats(disk), vm_pageins(), time.time()
-                r = post(args.url + "/completion", payload)
+                sampler = DiskSampler(disk)
+                sampler.start()
+                try:
+                    r = post(args.url + "/completion", payload)
+                finally:
+                    sampler.done.set()
                 d1, v1, t1 = disk_read_stats(disk), vm_pageins(), time.time()
+                sampler.join(5)
                 t = r["timings"]
+                samples = [(t0, d0[0])] + sampler.samples + [(t1, d1[0])]
+                gen_bytes = max(0, d1[0] - bytes_at(samples, t1 - t["predicted_ms"] / 1000))
                 rec = {"label": args.label, "turn": name, "t1_file": args.t1, "start": time.strftime("%T", time.localtime(t0)),
                        "wall_s": round(t1 - t0, 2),
                        "prompt_total_tokens": r.get("tokens_evaluated"),
@@ -102,10 +137,12 @@ def main():
                        "pageins": v1["pageins"] - v0["pageins"],
                        "swapouts": v1["swapouts"] - v0["swapouts"], "text": r.get("content", "")}
                 rec["avg_read_KB"] = round(rec["ssd_read_MB"] * 1000 / max(rec["ssd_read_ops"], 1), 1)
+                rec["ssd_read_gen_MB"] = round(gen_bytes / 1e6, 1)
+                rec["ssd_MB_per_gen_token"] = round(gen_bytes / 1e6 / max(t["predicted_n"], 1), 1)
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n"); f.flush()
                 print(f"{name:12s} prompt {rec['prompt_n']} new (+{rec['prompt_cached']} cached) "
                       f"in {rec['prompt_ms']/1000:.0f}s | gen {rec['gen_n']} @ {rec['gen_tps']:.2f} t/s | "
-                      f"SSD {rec['ssd_read_MB']} MB ({rec['avg_read_KB']} KB/op) | wall {rec['wall_s']}s "
+                      f"SSD {rec['ssd_read_MB']} MB ({rec['avg_read_KB']} KB/op)，生成 {rec['ssd_MB_per_gen_token']} MB/token | wall {rec['wall_s']}s "
                       f"| swapouts {rec['swapouts']}", flush=True)
     finally:
         for p in bg:

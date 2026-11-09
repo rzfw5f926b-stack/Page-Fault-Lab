@@ -1,0 +1,2 @@
+invoice_rounding: 工具呼叫格式 OK | wall 519.5s | turns 2 (tool 2，文字殘留標記 0) | 工具 ['glob', 'read'] | 結果 {'glob:completed': 1, 'read:completed': 1} | max wait 98.513s
+air_oc_qwen_fmt: 工具呼叫格式 OK | /Volumes/LLM SSD/Flashback/logs/air_oc_qwen_fmt_20261109_123623.jsonl

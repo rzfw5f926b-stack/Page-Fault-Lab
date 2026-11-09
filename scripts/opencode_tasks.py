@@ -86,12 +86,32 @@ class Recorder:
             rows, self.rows = self.rows, []
         return rows
 
+    def tool_turns(self):
+        with self.lock:
+            return sum(1 for r in self.rows if r.get("tools") and r.get("tool_calls"))
+
 
 def summarize_body(body):
     text = body.decode("utf-8", "replace")
     info = {"tool_calls": '"tool_calls"' in text and not re.search(r'"tool_calls":\s*(null|\[\])', text)}
     finish = re.findall(r'"finish_reason":\s*"(\w+)"', text)
     info["finish_reason"] = finish[-1] if finish else None
+    # 解析串流內容：伺服器沒解析出工具呼叫時，標記會留在文字裡（Qwen 的 <tool_call>、<function=...>）
+    content, names = [], []
+    for line in text.splitlines():
+        if not line.startswith("data:") or line[5:].strip() == "[DONE]":
+            continue
+        try:
+            obj = json.loads(line[5:])
+        except ValueError:
+            continue
+        for choice in obj.get("choices") or []:
+            delta = choice.get("delta") or {}
+            content.append(delta.get("content") or "")
+            names += [c["function"]["name"] for c in delta.get("tool_calls") or [] if (c.get("function") or {}).get("name")]
+    joined = "".join(content)
+    info["tool_names"] = names
+    info["raw_tool_markup"] = bool(re.search(r"<tool_call>|</tool_call>|<function=|</function>", joined))
     for key in ("timings", "usage"):
         for m in re.finditer(rf'"{key}":\s*(\{{.*?\}})', text):
             try:
@@ -101,7 +121,7 @@ def summarize_body(body):
     return info
 
 
-def make_proxy(target_host, target_port, rec):
+def make_proxy(target_host, target_port, rec, keep_body=False):
     class Handler(http.server.BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -116,7 +136,8 @@ def make_proxy(target_host, target_port, rec):
             try:
                 req = json.loads(body) if body else {}
                 row.update(messages=len(req.get("messages", [])), tools=len(req.get("tools", []) or []),
-                           request_bytes=length, stream=bool(req.get("stream")))
+                           request_bytes=length, stream=bool(req.get("stream")),
+                           temperature=req.get("temperature"), seed=req.get("seed"))
             except ValueError:
                 pass
             conn = http.client.HTTPConnection(target_host, target_port, timeout=7200)
@@ -139,7 +160,8 @@ def make_proxy(target_host, target_port, rec):
                     chunk = resp.read1(65536)
                     if not chunk:
                         break
-                    if first is None:
+                    # llama-server 處理提示詞時會送 SSE 心跳（只有 ":"），要等到第一筆 data: 才算模型開始回應
+                    if first is None and (b"data:" in chunk or not row.get("stream")):
                         first = time.time()
                     seen += chunk
                     self.wfile.write(b"%x\r\n" % len(chunk) + chunk + b"\r\n")
@@ -147,6 +169,8 @@ def make_proxy(target_host, target_port, rec):
                 self.wfile.write(b"0\r\n\r\n")
                 row["first_byte_s"] = round(first - t0, 3) if first else None
                 row.update(summarize_body(bytes(seen)))
+                if keep_body:
+                    row["body_head"] = bytes(seen[:20000]).decode("utf-8", "replace")
             except OSError as e:
                 row["error"] = repr(e)
                 self.close_connection = True
@@ -218,9 +242,23 @@ def git(work, *a):
 CURRENT = [None]
 
 
-def run_one(name, a, rec, extra):
-    work = f"{ROOT}/logs/opencode_work/{a.label}/{name}"
-    shutil.rmtree(os.path.dirname(work) + f"/{name}.stdout", ignore_errors=True)
+def count_tools(path):
+    """從 opencode 的輸出統計工具結果，例如 {'read:completed': 2}。"""
+    out = {}
+    for line in open(path, errors="replace"):
+        try:
+            part = json.loads(line).get("part") or {}
+        except ValueError:
+            continue
+        if part.get("tool"):
+            key = f"{part['tool']}:{(part.get('state') or {}).get('status')}"
+            out[key] = out.get(key, 0) + 1
+    return out
+
+
+def run_one(name, a, rec, extra, rep=1):
+    # 每題只跑一次時沿用舊路徑
+    work = f"{ROOT}/logs/opencode_work/{a.label}/{name}" + (f"_r{rep}" if a.repeats > 1 else "")
     shutil.rmtree(work, ignore_errors=True)
     shutil.copytree(f"{TASKS}/{name}/repo", work)
     write_config(work, a.proxy_port)
@@ -231,35 +269,66 @@ def run_one(name, a, rec, extra):
     out_path = f"{work}.stdout"
     rec.take()
     t0 = time.time()
-    timed_out = False
+    timed_out = stopped = False
     with open(out_path, "w") as out:
         # opencode 用 PWD 找專案設定，只設 cwd 會讀不到工作目錄的 opencode.json
         p = subprocess.Popen(cmd, cwd=work, env={**os.environ, "PWD": work}, stdin=subprocess.DEVNULL,
                              stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
         CURRENT[0] = p
-        try:
-            rc = p.wait(timeout=a.timeout)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            os.killpg(p.pid, signal.SIGKILL)
-            rc = p.wait()
+        deadline = t0 + a.timeout
+        stop_at = None  # 只驗格式時，達到輪數後再等幾秒，讓 opencode 寫完工具結果
+        while True:
+            try:
+                rc = p.wait(timeout=2)
+                break
+            except subprocess.TimeoutExpired:
+                now = time.time()
+                if a.stop_after_tool_turns and stop_at is None and rec.tool_turns() >= a.stop_after_tool_turns:
+                    stop_at = now + 5
+                if (stop_at is not None and now >= stop_at) or now >= deadline:
+                    stopped, timed_out = stop_at is not None and now >= stop_at, stop_at is None
+                    os.killpg(p.pid, signal.SIGKILL)
+                    rc = p.wait()
+                    break
         CURRENT[0] = None
     wall = time.time() - t0
     calls = rec.take()
     git(work, "add", "-A")
     changed = subprocess.run(["git", "diff", "--cached", "--name-only", "HEAD"], cwd=work, capture_output=True, text=True).stdout.split()
     changed = [f for f in changed if f != "opencode.json"]
-    passed, n, bad, tail = grade(name, work)
+    # 只驗格式時題目沒做完，判對錯沒有意義
+    passed, n, bad, tail = (None, 0, 0, "") if a.stop_after_tool_turns else grade(name, work)
     shutil.rmtree(f"{work}/.git", ignore_errors=True)  # 留著的話，外層 repo 會把工作目錄當成內嵌 repo，內容進不了 git
     agent = [c for c in calls if c.get("tools")]  # 沒帶工具的是 opencode 產生標題的請求，不算一輪
     waits = [c.get("first_byte_s") for c in agent if c.get("first_byte_s") is not None]
     totals = [c["total_s"] for c in agent]
-    return {"label": a.label, "task": name, "pass": passed, "tests": n, "failed": bad, "wall_s": round(wall, 1),
-            "exit": rc, "timed_out": timed_out, "turns": len(agent),
+    timing = [c.get("timings") or {} for c in agent]
+    gen_n = sum(t.get("predicted_n") or 0 for t in timing)
+    gen_ms = sum(t.get("predicted_ms") or 0 for t in timing)
+    tools = count_tools(out_path)
+    return {"label": a.label, "task": name, "repeat": rep, "pass": passed, "tests": n, "failed": bad, "wall_s": round(wall, 1),
+            "exit": rc, "timed_out": timed_out, "stopped_after_tool_turns": stopped, "turns": len(agent),
             "turns_with_tool_calls": sum(1 for c in agent if c.get("tool_calls")),
+            "turns_with_raw_tool_markup": sum(1 for c in agent if c.get("raw_tool_markup")),
+            "tool_names": [n for c in agent for n in c.get("tool_names", [])], "tool_results": tools,
             "http_errors": sum(1 for c in calls if c.get("error") or (c.get("status") or 200) >= 400),
             "first_byte_s_max": max(waits, default=None), "turn_total_s_max": max(totals, default=None),
-            "changed_files": changed, "test_tail": tail if not passed else "", "cmd_args": extra, "calls": calls}
+            "gen_tokens": gen_n, "gen_ms": round(gen_ms, 1), "gen_tps": round(gen_n / gen_ms * 1000, 2) if gen_ms else None,
+            "draft_n": sum(t.get("draft_n") or 0 for t in timing),
+            "draft_accepted": sum(t.get("draft_n_accepted") or 0 for t in timing),
+            "changed_files": changed, "test_tail": tail if passed is False else "", "cmd_args": extra, "calls": calls}
+
+
+def summarize(label, name, runs):
+    walls = [r["wall_s"] for r in runs]
+    turns = [r["turns"] for r in runs]
+    tps = [r["gen_tps"] for r in runs if r["gen_tps"]]
+    passes = sum(1 for r in runs if r["pass"])
+    return {"label": label, "kind": "summary", "task": name, "runs": len(runs), "passes": passes,
+            "pass_rate": round(passes / len(runs), 3), "results": [r["pass"] for r in runs],
+            "failed_tests": [r["failed"] for r in runs], "timed_out": sum(r["timed_out"] for r in runs),
+            "wall_s": walls, "wall_s_mean": round(sum(walls) / len(walls), 1), "turns": turns,
+            "gen_tps": tps, "first_byte_s_max": max((r["first_byte_s_max"] or 0 for r in runs), default=None)}
 
 
 def main():
@@ -272,6 +341,9 @@ def main():
     ap.add_argument("--server-port", type=int, default=8080)
     ap.add_argument("--proxy-port", type=int, default=8081)
     ap.add_argument("--opencode", default="opencode")
+    ap.add_argument("--repeats", type=int, default=1, help="每題跑幾次；依序把所有題目跑完一輪再跑下一輪")
+    ap.add_argument("--stop-after-tool-turns", type=int, default=0,
+                    help="只驗工具呼叫格式：達到這個輪數就停止，不判對錯；保留回應內容")
     a = ap.parse_args()
     if a.validate:
         return validate()
@@ -288,26 +360,49 @@ def main():
     signal.signal(signal.SIGTERM, on_term)
 
     rec = Recorder()
-    Server, Handler = make_proxy("127.0.0.1", a.server_port, rec)
+    Server, Handler = make_proxy("127.0.0.1", a.server_port, rec, keep_body=bool(a.stop_after_tool_turns))
     proxy = Server(("127.0.0.1", a.proxy_port), Handler)
     threading.Thread(target=proxy.serve_forever, daemon=True).start()
     names = a.tasks.split(",") if a.tasks else task_names()
     extra = opencode_args(a.opencode)
     os.makedirs(f"{ROOT}/logs/opencode_work/{a.label}", exist_ok=True)
     path = f"{ROOT}/logs/{a.label}_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
-    passed = 0
+    runs = {n: [] for n in names}
+    format_bad = 0
     with open(path, "w") as f:
-        for i, name in enumerate(names):
-            if i:
-                wait_cool(a.pause)
-            r = run_one(name, a, rec, extra)
-            passed += r["pass"]
-            f.write(json.dumps(r, ensure_ascii=False) + "\n"); f.flush()
-            print(f"{name}: {'PASS' if r['pass'] else 'FAIL'} | {r['tests']} tests, {r['failed']} bad | "
-                  f"wall {r['wall_s']}s | turns {r['turns']} (tool {r['turns_with_tool_calls']}) | "
-                  f"max wait {r['first_byte_s_max']}s | http errors {r['http_errors']}"
-                  + (" | TIMEOUT" if r["timed_out"] else ""), flush=True)
-    print(f"{a.label}: {passed}/{len(names)} passed | {path}", flush=True)
+        first = True
+        for rep in range(1, a.repeats + 1):  # 一輪一輪跑：中途停掉時，每題的次數仍然平均
+            for name in names:
+                if not first:
+                    wait_cool(a.pause)
+                first = False
+                r = run_one(name, a, rec, extra, rep)
+                runs[name].append(r)
+                f.write(json.dumps(r, ensure_ascii=False) + "\n"); f.flush()
+                tag = f"#{rep} " if a.repeats > 1 else ""
+                if a.stop_after_tool_turns:
+                    ok = r["turns_with_tool_calls"] >= a.stop_after_tool_turns and not r["turns_with_raw_tool_markup"] and r["tool_results"]
+                    format_bad += not ok
+                    print(f"{name}: 工具呼叫格式 {'OK' if ok else 'NG'} | wall {r['wall_s']}s | turns {r['turns']} "
+                          f"(tool {r['turns_with_tool_calls']}，文字殘留標記 {r['turns_with_raw_tool_markup']}) | "
+                          f"工具 {r['tool_names']} | 結果 {r['tool_results']} | max wait {r['first_byte_s_max']}s"
+                          + (" | TIMEOUT" if r["timed_out"] else ""), flush=True)
+                    continue
+                print(f"{name} {tag}: {'PASS' if r['pass'] else 'FAIL'} | {r['tests']} tests, {r['failed']} bad | "
+                      f"wall {r['wall_s']}s | turns {r['turns']} (tool {r['turns_with_tool_calls']}) | "
+                      f"max wait {r['first_byte_s_max']}s | {r['gen_tps']} t/s | draft {r['draft_accepted']}/{r['draft_n']} | "
+                      f"http errors {r['http_errors']}" + (" | TIMEOUT" if r["timed_out"] else ""), flush=True)
+        if a.stop_after_tool_turns:
+            print(f"{a.label}: 工具呼叫格式 {'OK' if not format_bad else 'NG'} | {path}", flush=True)
+            return 1 if format_bad else 0
+        for name in names:
+            s = summarize(a.label, name, runs[name])
+            f.write(json.dumps(s, ensure_ascii=False) + "\n"); f.flush()
+            print(f"{name}: 通過 {s['passes']}/{s['runs']} | 結果 {s['results']} | wall 平均 {s['wall_s_mean']}s "
+                  f"{s['wall_s']} | 輪數 {s['turns']} | t/s {s['gen_tps']}", flush=True)
+    total = sum(len(v) for v in runs.values())
+    passed = sum(1 for v in runs.values() for r in v if r["pass"])
+    print(f"{a.label}: {passed}/{total} passed | {path}", flush=True)
     return 0
 
 

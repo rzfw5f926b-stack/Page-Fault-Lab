@@ -1,4 +1,4 @@
 #!/bin/sh
-# run_mini.sh 第 3 階段呼叫的入口。用法：scripts/run_opencode_tasks.sh <label>
-# OPENCODE_TASKS 可指定題目（逗號分隔），預設全部。
-exec python3 -I "$(dirname "$0")/opencode_tasks.py" --label "$1" --tasks "${OPENCODE_TASKS:-}"
+# 環境變數：OPENCODE_TASKS（逗號分隔的題目）、OPENCODE_REPEATS（每題次數）、OPENCODE_STOP_AFTER（幾輪工具呼叫後停止，只驗格式）、OPENCODE_TIMEOUT（每題秒數上限）
+exec python3 -I "$(dirname "$0")/opencode_tasks.py" --label "$1" --tasks "${OPENCODE_TASKS:-}" \
+  --repeats "${OPENCODE_REPEATS:-1}" --stop-after-tool-turns "${OPENCODE_STOP_AFTER:-0}" --timeout "${OPENCODE_TIMEOUT:-1800}"

@@ -21,7 +21,7 @@ while pgrep -f "run_ubatch.sh|download_extra.sh|run_spec.sh|run_more.sh|run_20b.
   GM=$(( ${GM:-0} / 1048576 ))
   FREE=$(memory_pressure | awk '/free percentage/ {gsub("%","");print $5}')
   SW=$(sysctl -n vm.swapusage | awk '{gsub("M","",$6);print $6}')
-  P=$(pgrep -f "^llama-server -m|mlx_lm.server" | head -1)
+  P=$(pgrep -f "^llama-server -m|mlx_lm.server|ollama runner" | head -1)
   if [ -n "$P" ]; then
     SC=$(ps -o %cpu= -p "$P" | tr -d ' ')
     SF=$(footprint -p "$P" 2>/dev/null | awk '/phys_footprint:/ {print $2$3; exit}')

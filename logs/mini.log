@@ -18,3 +18,14 @@
 2026-11-09 02:12:31 air_oc_20b_opencode exit=0 : invoice_rounding: FAIL | 7 tests, 1 bad | wall 94.1s | turns 12 (tool 11) | max wait 20.653s | http errors 0 air_oc_20b: 0/1 passed | /Volumes/LLM SSD/Flashback/logs/air_oc_20b_20261109_021057.jsonl 
 2026-11-09 02:12:31 swapouts since start: +0 pages, swap used 885 MB (start 885)
 2026-11-09 02:12:31 end: Air 驗證完成
+2026-11-09 12:09:50 mini test start: Apple M5, 24 GB, swap used 861MB, free 76%
+2026-11-09 12:09:50 cooldown 1200 s
+2026-11-09 12:29:50 cool ok, level=0
+2026-11-09 12:29:50 start server air_oc_qwen_fmt backend=llama MODEL=Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf EXPS=CPU EXTRA=[--jinja] CTX=16384 BATCH=2048 UB=2048 (free 77%)
+2026-11-09 12:30:47 server ready after 55s
+2026-11-09 12:30:47 footprint:     phys_footprint: 1669 MB; wired: (3386M; free 69%
+2026-11-09 12:30:47 cooldown 300 s
+2026-11-09 12:35:47 cool ok, level=0
+2026-11-09 12:45:02 air_oc_qwen_fmt_opencode exit=0 : invoice_rounding: 工具呼叫格式 OK | wall 519.5s | turns 2 (tool 2，文字殘留標記 0) | 工具 ['glob', 'read'] | 結果 {'glob:completed': 1, 'read:completed': 1} | max wait 98.513s air_oc_qwen_fmt: 工具呼叫格式 OK | /Volumes/LLM SSD/Flashback/logs/air_oc_qwen_fmt_20261109_123623.jsonl 
+2026-11-09 12:45:02 swapouts since start: +32 pages, swap used 845 MB (start 861)
+2026-11-09 12:45:02 end: Air Qwen 工具呼叫驗證結束

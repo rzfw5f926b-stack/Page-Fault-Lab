@@ -17,7 +17,8 @@ set --
 [ -n "$PIN_OT" ] && set -- -ot "$PIN_OT"
 [ "${EXPS:-CPU}" = GPU ] || set -- "$@" -ot "exps=CPU"
 [ "${RESIDENCY:-0}" = 1 ] || export GGML_METAL_NO_RESIDENCY=1
-exec llama-server -m "$ROOT/models/$MODEL" \
+case "$MODEL" in /*) MODEL_PATH="$MODEL";; *) MODEL_PATH="$ROOT/models/$MODEL";; esac   # 絕對路徑用於 Ollama 的 blob
+exec llama-server -m "$MODEL_PATH" \
   -ngl 999 "$@" --no-repack -c "$CTX" -t "$THREADS" -b "$BATCH" -ub "$UB" --no-warmup \
   --host 127.0.0.1 --port 8080 -np 1 $EXTRA \
   > "$ROOT/logs/server_${LABEL}_$(date +%Y%m%d_%H%M%S).log" 2>&1
