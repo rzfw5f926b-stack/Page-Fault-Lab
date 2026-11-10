@@ -1,0 +1,9 @@
+calc_language #1 : PASS | 9 tests, 0 bad | wall 1845.0s | turns 21 (tool 17) | max wait 159.93s | 13.5 t/s | draft 0/0 | http errors 0
+invoice_rounding #1 : PASS | 7 tests, 0 bad | wall 645.8s | turns 6 (tool 5) | max wait 239.34s | 10.41 t/s | draft 0/0 | http errors 0
+retry_refactor #1 : PASS | 10 tests, 0 bad | wall 641.3s | turns 6 (tool 4) | max wait 79.377s | 10.51 t/s | draft 0/0 | http errors 1 | 工具失敗：HTTP 錯誤 1 次
+todo_priority #1 : PASS | 9 tests, 0 bad | wall 728.4s | turns 11 (tool 10) | max wait 232.471s | 9.86 t/s | draft 0/0 | http errors 0
+calc_language #2 : FAIL | 9 tests, 1 bad | wall 1074.9s | turns 16 (tool 14) | max wait 152.008s | 10.76 t/s | draft 0/0 | http errors 0
+invoice_rounding #2 : PASS | 7 tests, 0 bad | wall 1181.6s | turns 11 (tool 9) | max wait 177.007s | 9.19 t/s | draft 0/0 | http errors 1 | 工具失敗：HTTP 錯誤 1 次
+retry_refactor #2 : PASS | 10 tests, 0 bad | wall 480.1s | turns 6 (tool 5) | max wait 255.3s | 9.11 t/s | draft 0/0 | http errors 0
+todo_priority #2 : PASS | 9 tests, 0 bad | wall 633.3s | turns 9 (tool 8) | max wait 206.297s | 9.25 t/s | draft 0/0 | http errors 0
+calc_language #3 : FAIL | 9 tests, 1 bad | wall 1009.4s | turns 11 (tool 9) | max wait 46.774s | 10.58 t/s | draft 0/0 | http errors 1 | 工具失敗：HTTP 錯誤 1 次

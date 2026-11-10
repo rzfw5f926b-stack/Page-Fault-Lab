@@ -1,0 +1,3 @@
+invoice_rounding : PASS | 7 tests, 0 bad | wall 120.2s | turns 15 (tool 14) | max wait 8.4s | 45.49 t/s | draft 0/0 | http errors 0
+invoice_rounding: 通過 1/1 | 結果 [True] | wall 平均 120.2s [120.2] | 輪數 [15] | t/s [45.49]
+mini_oc_smoke: 1/1 passed | 工具失敗 0 次 | /Users/Shared/Flashback/logs/mini_oc_smoke_20261110_165928.jsonl

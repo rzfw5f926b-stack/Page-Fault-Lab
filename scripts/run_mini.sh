@@ -9,6 +9,7 @@
 #   PHASES=h3 H3_UB=512                 只跑 Qwen exps=CPU 的 agent_bench，-b/-ub 改成 H3_UB，看混合架構每輪重算量
 #   PHASES=h4 H4_MAX_TOKENS=28672       思考型模型的品質題：max_tokens 放寬、ctx 32768、-b/-ub 512（H4_UB），只跑品質題
 #   MINI_UB=512                          其他階段的 -b/-ub（預設 2048）；混合架構用 512，前綴快取才有效
+#   OC3_SETS="qwen 20b"                 第 3 階段要跑的組（預設 qwen ngram 20b）
 #   QUALITY_MAX_TOKENS                  其他階段品質題的 max_tokens（預設 4096）
 #   QWEN_MODEL、QWEN_TAG                 換 Qwen 模型檔（models/ 下的檔名）和紀錄名稱後綴（第 1、3v、3 階段）
 #   QWEN_EXPS=CPU                       Qwen 直接用 exps=CPU（預設先試整個放 GPU）
@@ -531,9 +532,10 @@ elif [ -z "$M" ]; then
   if [ "$RC" -ne 0 ] || [ "$M_RC" != 0 ]; then
     problem "第 3 階段跳過：opencode ${OC_V:-未知版本} 煙霧測試沒過（見 logs/mini_oc_smoke_opencode_console.log）"
   else
-    run_qwen_oc "mini_oc_qwen${QTAG}" "--jinja"
-    run_qwen_oc "mini_oc_qwen${QTAG}_ngram" "--jinja --spec-type ngram-mod"
-    must mini_oc_20b "$COOLDOWN" llama "$B20" GPU "--jinja" harmony opencode 32768
+    OC3_SETS=" ${OC3_SETS:-qwen ngram 20b} "   # 例如 OC3_SETS="qwen 20b" 跳過 ngram-mod
+    case "$OC3_SETS" in *" qwen "*) run_qwen_oc "mini_oc_qwen${QTAG}" "--jinja";; esac
+    case "$OC3_SETS" in *" ngram "*) run_qwen_oc "mini_oc_qwen${QTAG}_ngram" "--jinja --spec-type ngram-mod";; esac
+    case "$OC3_SETS" in *" 20b "*) must mini_oc_20b "$COOLDOWN" llama "$B20" GPU "--jinja" harmony opencode 32768;; esac
   fi
 else
   problem "第 3 階段跳過，缺 $M"
