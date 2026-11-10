@@ -107,7 +107,7 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 | Qwen3-Coder-30B，mmap（`EXPS=CPU`），不加 ngram | **可以實際使用的候選** | 10～19 tok/s；opencode 一題 6.5 分鐘、15 輪、每輪最久 60 秒；wired 最高 8GB，可用記憶體最低 56%；熱壓力 0 |
 | Qwen3-Coder-30B，全放 GPU | 共用機不適合 | 最快（52～62 tok/s），但 wired 22GB、可用記憶體 11%，被記憶體保護中止 |
 | Qwen mmap 加 ngram-mod | 不建議 | 生成速度慢約 23%，草稿只接受 27% |
-| Qwen3.6-35B-A3B，mmap（`EXPS=CPU`） | 品質題可用，opencode 還沒測 | 速度和 Qwen3-Coder 相近（14～17 tok/s）；放寬額度（28,672）後品質題 5/6，另 1 題（fix_bug）思考用完額度、交不出程式碼，0 題答錯；單題最久約 32 分鐘；混合架構要用 `-ub 512` 才不會每輪重算約 2,000 token；沒有 opencode 數據 |
+| Qwen3.6-35B-A3B，mmap（`EXPS=CPU`） | 品質題可用，opencode 只驗證過 1 題 | 速度和 Qwen3-Coder 相近（14～17 tok/s）；放寬額度（28,672）後品質題 5/6，另 1 題（fix_bug）思考用完額度、交不出程式碼，0 題答錯；單題最久約 32 分鐘；混合架構要用 `-ub 512` 才不會每輪重算約 2,000 token；opencode 驗證題 1/1 通過（443 秒，Qwen3-Coder 同題沒過），還不算可靠度 |
 | gpt-oss-120b，mmap | 跑得動，目前不適合當候選 | 1.7～1.9 tok/s，每輪光讀提示 45 秒以上、讀 SSD 80～100GB；沒有 opencode 數據，以 Qwen 那題的 token 量粗估一題 40 分鐘以上（推算） |
 
 - **可靠度還沒有數據。** Qwen 只跑過 2 次 opencode，都錯在同一個隱藏測試。兩次都跑了附帶的測試，看到通過才說完成，所以模型說「通過」不能當驗收，要由派工端自己跑規格測試。
@@ -180,6 +180,8 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 | fix_bug | 額度用完（`budget`） | 28,672 | 14.9 tok/s | 1,926 s |
 
 fix_bug 把 28,672 token 全部用在思考（約 8.6 萬字），回答是空的。這題是修改既有程式，不是從頭寫；在思考上空轉而交不出東西，是過夜任務要注意的失敗型態。整輪沒有觸發保護，熱壓力 0，swap 沒有增加（開始 4,813MB，結束 4,621MB）。ctx 32,768 扣掉提示後，額度已經接近上限，再放寬要一起加大 ctx。
+
+**opencode 設定驗證（3v，2026-11-10 16:09～16:16，`-b/-ub 512`、ctx 32,768、opencode 2.1.3）：只跑 1 題 1 次，不算可靠度。** `invoice_rounding`：PASS，7 個測試全過（Qwen3-Coder 同一題錯 2 個）。443 秒、8 輪、12.2 tok/s，每輪最久等 144 秒，工具失敗 0、HTTP 錯誤 0。前綴快取有效：之後多數輪只重算 25～989 token，只有一輪重算 6,360 token（36 秒），應該是退回較早的 checkpoint。沒有觸發保護，熱壓力 0，swap 沒有增加（開始 4,573MB，結束 4,529MB）。`run_mini.sh` 用 `MINI_UB=512` 指定 3v 的 `-b/-ub`。
 
 **前綴快取：混合架構要用較小的 `-ub`。** 線性注意力的狀態不能退回任意位置，只能退回 context checkpoint；llama.cpp（build 12110）的 checkpoint 落在「提示長度 − 一個批次」。所以 `-ub 2048` 時，每一輪都要重算約 2,048 token 加上新增的部分。純注意力的 Qwen3-Coder 可以直接截斷，沒有這個問題。改成 `-b/-ub 512` 重跑 agent_bench（2026-11-10 12:52，只跑 1 次）：
 

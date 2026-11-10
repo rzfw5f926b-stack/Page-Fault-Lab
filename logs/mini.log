@@ -282,3 +282,28 @@ NameError: name \'top_words\' is not defined
 2026-11-10 15:30:50 第 4 階段不在 PHASES，略過
 2026-11-10 15:30:50 end: 全部完成
 2026-11-10 15:30:50 scrub_logs：清理 0 個紀錄檔，殘留 0 個
+2026-11-10 15:43:59 mini test start: Apple M6, 32 GB, swap used 4573MB, free 81%, PHASES=[3v]
+2026-11-10 15:43:59 第 0 階段：Ollama 對照
+2026-11-10 15:43:59 第 0 階段不在 PHASES，略過
+2026-11-10 15:43:59 第 1 階段：llama.cpp Qwen
+2026-11-10 15:43:59 第 1 階段不在 PHASES，略過
+2026-11-10 15:43:59 第 2 階段：MLX Qwen
+2026-11-10 15:44:00 第 2 階段不在 PHASES，略過
+2026-11-10 15:44:00 opencode 設定驗證：Qwen 跑 1 題，只確認設定可用，不算可靠度
+2026-11-10 15:44:00 opencode 版本：opencode v2.1.3
+2026-11-10 15:44:00 cooldown 1200 s
+2026-11-10 16:04:00 cool ok, level=0
+2026-11-10 16:04:00 start server mini_oc_q36_verify_cpu backend=llama MODEL=Qwen3.6-35B-A3B-Q4_K_M.gguf EXPS=CPU EXTRA=[--jinja] CTX=32768 BATCH=512 UB=512 GGML_METAL_NO_RESIDENCY=1 (free 82%)
+2026-11-10 16:04:06 server ready after 6s
+2026-11-10 16:04:07 probe 1 token: http=200, 1s
+2026-11-10 16:04:08 footprint:     phys_footprint: 936 MB; wired: (6341M; free 71%
+2026-11-10 16:04:08 cooldown 300 s
+2026-11-10 16:09:08 cool ok, level=0
+2026-11-10 16:16:31 mini_oc_q36_verify_cpu_opencode exit=0 : invoice_rounding : PASS | 7 tests, 0 bad | wall 442.7s | turns 8 (tool 7) | max wait 143.884s | 12.18 t/s | draft 0/0 | http errors 0 invoice_rounding: 通過 1/1 | 結果 [True] | wall 平均 442.7s [442.7] | 輪數 [8] | t/s [12.18] mini_oc_q36_verify_cpu: 1/1 passed | 工具失敗 0 次 | /Users/Shared/Flashback/logs/mini_oc_q36_verify_cpu_20261110_160908.jsonl 
+2026-11-10 16:16:31 swapouts since start: +256 pages, swap used 4529 MB (start 4573)
+2026-11-10 16:16:31 第 3 階段：opencode
+2026-11-10 16:16:31 第 3 階段不在 PHASES，略過
+2026-11-10 16:16:31 第 4 階段：120b
+2026-11-10 16:16:31 第 4 階段不在 PHASES，略過
+2026-11-10 16:16:31 end: 全部完成
+2026-11-10 16:16:32 scrub_logs：清理 1 個紀錄檔，殘留 0 個

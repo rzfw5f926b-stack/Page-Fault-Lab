@@ -8,6 +8,7 @@
 #   PHASES="1 3v 4" scripts/run_mini.sh    只跑列出的階段（空白分隔，預設 "0 1 2 3 4"）。3v = 第 1 階段後用 opencode 讓 Qwen 跑 1 題，確認設定可用，不算可靠度
 #   PHASES=h3 H3_UB=512                 只跑 Qwen exps=CPU 的 agent_bench，-b/-ub 改成 H3_UB，看混合架構每輪重算量
 #   PHASES=h4 H4_MAX_TOKENS=28672       思考型模型的品質題：max_tokens 放寬、ctx 32768、-b/-ub 512（H4_UB），只跑品質題
+#   MINI_UB=512                          其他階段的 -b/-ub（預設 2048）；混合架構用 512，前綴快取才有效
 #   QUALITY_MAX_TOKENS                  其他階段品質題的 max_tokens（預設 4096）
 #   QWEN_MODEL、QWEN_TAG                 換 Qwen 模型檔（models/ 下的檔名）和紀錄名稱後綴（第 1、3v、3 階段）
 #   QWEN_EXPS=CPU                       Qwen 直接用 exps=CPU（預設先試整個放 GPU）
@@ -80,7 +81,8 @@ BENCH_COOLDOWN="${BENCH_COOLDOWN:-300}"
 SRV='llama-server -m|mlx_lm.server'
 GUARD_PAT="$SRV|ollama_bench.py"
 LOG="$ROOT/logs/mini.log"
-RUN_BATCH=2048; RUN_UB=2048   # 第 4 階段改成 8192
+DEF_UB="${MINI_UB:-2048}"   # MINI_UB=512：混合架構（例如 Qwen3.6）的 3v、第 1 階段
+RUN_BATCH=$DEF_UB; RUN_UB=$DEF_UB   # 第 4 階段改成 8192
 OLLAMA_USED=0; PROBLEMS=""
 PHASES="${PHASES:-0 1 2 3 4}"
 phase_on() { case " $PHASES " in *" $1 "*) return 0;; esac; return 1; }
@@ -475,7 +477,7 @@ if phase_on h3; then
   RUN_BATCH=$H3_UB; RUN_UB=$H3_UB
   run_cfg "mini_q${QTAG}_cpu_ub$H3_UB" "$COOLDOWN" llama "$QWEN" CPU "" chatml agent 8192
   case $? in 1|3) problem "h3 載入失敗";; esac
-  RUN_BATCH=2048; RUN_UB=2048
+  RUN_BATCH=$DEF_UB; RUN_UB=$DEF_UB
 fi
 
 # h4：思考型模型的品質題。放寬 max_tokens（預設 28672），ctx 32768 要裝得下提示加額度；
@@ -486,7 +488,7 @@ if phase_on h4; then
   RUN_BATCH=$H4_UB; RUN_UB=$H4_UB; QUALITY_MAX_TOKENS=$H4_MAX
   run_cfg "mini_q${QTAG}_cpu_think$H4_MAX" "$COOLDOWN" llama "$QWEN" CPU "" chatml quality 32768
   case $? in 1|3) problem "h4 載入失敗";; esac
-  RUN_BATCH=2048; RUN_UB=2048; unset QUALITY_MAX_TOKENS
+  RUN_BATCH=$DEF_UB; RUN_UB=$DEF_UB; unset QUALITY_MAX_TOKENS
 fi
 
 log "第 2 階段：MLX Qwen"
@@ -546,7 +548,7 @@ elif [ -z "$M" ]; then
   RUN_BATCH=8192; RUN_UB=8192   # 和 Air 第 2 項相同：-c 16384 -b 8192 -ub 8192，提示詞 agent_long.txt
   must mini_120b_ub8192 "$COOLDOWN" llama "$B120" CPU "" harmony ub120 16384
   must mini_120b_ub8192_ngram "$COOLDOWN" llama "$B120" CPU "--spec-type ngram-mod" harmony ub120 16384
-  RUN_BATCH=2048; RUN_UB=2048
+  RUN_BATCH=$DEF_UB; RUN_UB=$DEF_UB
 else
   problem "第 4 階段跳過，缺 $M"
 fi

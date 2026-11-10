@@ -1,0 +1,3 @@
+invoice_rounding : PASS | 7 tests, 0 bad | wall 442.7s | turns 8 (tool 7) | max wait 143.884s | 12.18 t/s | draft 0/0 | http errors 0
+invoice_rounding: 通過 1/1 | 結果 [True] | wall 平均 442.7s [442.7] | 輪數 [8] | t/s [12.18]
+mini_oc_q36_verify_cpu: 1/1 passed | 工具失敗 0 次 | /Users/Shared/Flashback/logs/mini_oc_q36_verify_cpu_20261110_160908.jsonl
