@@ -1,0 +1,6 @@
+SSD = disk0, log = /Users/Shared/Flashback/logs/mini_q_36_cpu_agent_20261110_111842.jsonl
+t1_long      prompt 3217 new (+0 cached) in 17s | gen 64 @ 16.14 t/s | SSD 7221.9 MB (47.4 KB/op)，生成 7.9 MB/token | wall 20.51s | swapouts 0
+  rest 60s
+t2_followup  prompt 2258 new (+1169 cached) in 11s | gen 64 @ 15.57 t/s | SSD 4111.9 MB (44.7 KB/op)，生成 6.1 MB/token | wall 15.15s | swapouts 0
+  rest 60s
+t3_followup  prompt 2399 new (+1379 cached) in 16s | gen 64 @ 13.76 t/s | SSD 7003.1 MB (45.3 KB/op)，生成 8.8 MB/token | wall 20.33s | swapouts 0

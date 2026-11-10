@@ -2,12 +2,14 @@
 # 熱保護（使用者要求：不過熱優先於實驗成功）
 # 每 10 秒讀 macOS 熱壓力等級（0=正常 1=中等 2=重 3=更重 4=睡眠）。
 # 只要 llama-server 或量測正在執行且等級 >=1，就立刻停掉兩者（SIGKILL），並留下 logs/THERMAL_TRIP_* 標記。
-# 閒置時只記錄等級、不計跳脫。logs/overnight_done 出現後結束。
+# 讀不到等級時當成 1。閒置時只記錄等級、不計跳脫。logs/overnight_done 出現後結束。
 ROOT="${FLASHBACK_ROOT:-/Volumes/LLM SSD/Flashback}"
 while [ ! -f "$ROOT/logs/overnight_done" ]; do
-  L=$(notifyutil -g com.apple.system.thermalpressurelevel | awk '{print $2}')
-  echo "$(date '+%T') $L" >> "$ROOT/logs/thermal_level.log"
-  if [ "${L:-0}" -ge 1 ] && pgrep -f "llama-server -m|mlx_lm.server|agent_bench.py|quality_bench.py|stream_bench.py|ollama_bench.py|opencode_tasks.py|randread.py|evict.bin" >/dev/null; then
+  L=$(notifyutil -g com.apple.system.thermalpressurelevel 2>/dev/null | awk '{print $2}')
+  # 讀不到等級時當成 1（不安全），紀錄裡寫成 1?，方便和真的 1 分開
+  case "$L" in ''|*[!0-9]*) L=1; M="1?";; *) M="$L";; esac
+  echo "$(date '+%T') $M" >> "$ROOT/logs/thermal_level.log"
+  if [ "$L" -ge 1 ] && pgrep -f "llama-server -m|mlx_lm.server|agent_bench.py|quality_bench.py|stream_bench.py|ollama_bench.py|opencode_tasks.py|randread.py|evict.bin" >/dev/null; then
     echo "$(date '+%F %T') THERMAL TRIP level=$L -> stopping bench and server" >> "$ROOT/logs/overnight.log"
     touch "$ROOT/logs/THERMAL_TRIP_$(date '+%H%M%S')"
     pkill -f "agent_bench.py"; pkill -f "quality_bench.py"; pkill -f "stream_bench.py"; pkill -f "ollama_bench.py"; pkill -f "opencode_tasks.py"; pkill -f "randread.py"; pkill -9 -f "llama-server -m"; pkill -9 -f "mlx_lm.server"; pkill -f "evict.bin"

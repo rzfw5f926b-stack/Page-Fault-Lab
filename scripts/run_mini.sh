@@ -6,8 +6,9 @@
 #   scripts/run_mini.sh --air-qwen-tools   在 Air 上驗證 Qwen 的工具呼叫格式：opencode 跑兩輪工具呼叫就停，不判對錯
 #   MLX_MODEL=<資料夾> scripts/run_mini.sh --air-mlx   在 Air 上用小模型走一遍 MLX 流程，只驗流程，速度沒有參考價值
 #   PHASES="1 3v 4" scripts/run_mini.sh    只跑列出的階段（空白分隔，預設 "0 1 2 3 4"）。3v = 第 1 階段後用 opencode 讓 Qwen 跑 1 題，確認設定可用，不算可靠度
-#   QWEN_EXPS=CPU                          Qwen 直接用 exps=CPU（預設先試整個放 GPU）
-#   VERIFY_EXTRA、VERIFY_LABEL             3v 的伺服器參數和紀錄名稱（預設 "--jinja"、mini_oc_qwen_verify）
+#   QWEN_MODEL、QWEN_TAG                   換 Qwen 模型檔（models/ 下的檔名）和紀錄名稱後綴（第 1、3v、3 階段）
+#   QWEN_EXPS=CPU                       Qwen 直接用 exps=CPU（預設先試整個放 GPU）
+#   VERIFY_EXTRA、VERIFY_LABEL             3v 的伺服器參數和紀錄名稱（預設 "--jinja"、mini_oc_qwen${QTAG}_verify）
 #
 # 順序：
 #   第 0 階段  Ollama 對照：Ollama 的 gpt-oss:latest、llama-server 跑專案的 20b、llama-server 跑 Ollama 的 blob
@@ -62,7 +63,8 @@ fi
 LLAMA_MIN_BUILD=12110   # Air 測試用的版本
 llama_build() { llama-server --version 2>&1 | sed -n 's/.*build \([0-9][0-9]*\).*/\1/p' | head -1; }
 
-QWEN=Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf
+QWEN="${QWEN_MODEL:-Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf}"
+QTAG="${QWEN_TAG:-}"   # 換模型時加在第 1 階段紀錄名稱上，例如 _36 → mini_q_36_cpu
 B20=gpt-oss-20b-MXFP4.gguf
 B120=gpt-oss-120b-MXFP4.gguf
 MLX_PY="${MLX_PY:-$ROOT/.venv-mlx/bin/python}"
@@ -80,7 +82,8 @@ OLLAMA_USED=0; PROBLEMS=""
 PHASES="${PHASES:-0 1 2 3 4}"
 phase_on() { case " $PHASES " in *" $1 "*) return 0;; esac; return 1; }
 
-level() { notifyutil -g com.apple.system.thermalpressurelevel | awk '{print $2}'; }
+# 讀不到等級（空字串或非數字）時當成 1：看不到熱壓力就當作不安全，不當成正常
+level() { L=$(notifyutil -g com.apple.system.thermalpressurelevel 2>/dev/null | awk '{print $2}'); case "$L" in ''|*[!0-9]*) echo 1;; *) echo "$L";; esac; }
 chip() { sysctl -n machdep.cpu.brand_string; }
 ram_gb() { echo $(( $(sysctl -n hw.memsize) / 1073741824 )); }
 
@@ -177,13 +180,15 @@ stop_server() {
 }
 # 只卸載自己載入的模型，不動 Ollama 服務本身
 ollama_unload() { curl -s -m 60 "$OLLAMA_URL/api/generate" -d "{\"model\":\"$OLLAMA_MODEL\",\"keep_alive\":0}" >/dev/null; }
-finish() {
+finish() {  # $1=結束原因 $2=ok 表示流程正常走完；沒有 ok 或 PROBLEMS 不是空的就回傳 1
   kill "$MG" 2>/dev/null; stop_server
   [ "$OLLAMA_USED" = 1 ] && ollama_unload
   log "end: $1"
   R=$(sh "$ROOT/scripts/scrub_logs.sh" 2>&1) || R="$R（還有殘留，推送前要處理）"
   log "$R"
-  touch "$ROOT/logs/overnight_done"; exit 0
+  touch "$ROOT/logs/overnight_done"
+  [ "${2:-}" = ok ] && [ -z "$PROBLEMS" ] && exit 0
+  exit 1
 }
 trap 'finish "收到中止訊號"' INT TERM
 S0=$(swapouts); SW0=$(swapused); TRIP0=$(trips)
@@ -245,10 +250,20 @@ op_check() {  # $1=label $2=自己載入的模型（可省略）
   [ -n "$S" ] && problem "$1 量測期間 Ollama 載入了 $S，這組數據可能受影響"
 }
 alive() { [ "$(trips)" -eq "$T0" ] && pgrep -f "$SRV" >/dev/null; }
+# 每組設定寫一份 logs/<label>_meta_<時間>.json：模型檔、參數、llama.cpp 版本、opencode 版本。
+# 同一組的 jsonl 都用 <label> 開頭（例如 <label>_agent_*.jsonl），靠名稱對回這份；換模型時 QWEN_TAG 讓名稱不撞
+write_meta() {  # 參數同 run_cfg
+  MF="logs/$1_meta_$(date +%Y%m%d_%H%M%S).json"
+  LBV=$(llama-server --version 2>&1 | grep -m1 -i 'version' | tr -d '"\\')
+  OCV=""; case "$8" in *opencode*) OCV=$(opencode_version | tr -d '"\\');; esac
+  printf '{"label":"%s","backend":"%s","model_file":"%s","model_bytes":%s,"exps":"%s","extra":"%s","fmt":"%s","items":"%s","ctx":"%s","batch":"%s","ubatch":"%s","llama_version":"%s","opencode_version":"%s","started":"%s"}\n' \
+    "$1" "$3" "$(basename "$4")" "$(stat -f %z "$4" 2>/dev/null || echo null)" "$5" "$6" "$7" "$8" "$9" "$RUN_BATCH" "$RUN_UB" "$LBV" "$OCV" "$(date '+%F %T')" > "$MF"
+}
 measure() {  # $1=紀錄用名稱，其餘是要執行的指令；輸出存 logs/<名稱>_console.log
   M_NAME="$1"; shift
   alive || { problem "$M_NAME 沒有量測：伺服器已停止或熱保護跳脫"; return; }
   cool "$BENCH_COOLDOWN"
+  guard_ok || finish "熱保護沒有在運作（thermal_level.log 超過 30 秒沒更新），停止"
   "$@" > "logs/${M_NAME}_console.log" 2>&1
   M_RC=$?
   log "$M_NAME exit=$M_RC : $(tr '\n' ' ' < "logs/${M_NAME}_console.log")"
@@ -263,6 +278,7 @@ run_cfg() {
   T0=$(trips); stop_server
   wait_quiet || { problem "$1 跳過：其他負載未結束"; return 2; }
   op_mark
+  guard_ok || finish "熱保護沒有在運作（thermal_level.log 超過 30 秒沒更新），停止"
   NR=""; [ "$3" = llama ] && [ "${RESIDENCY:-0}" != 1 ] && NR=" GGML_METAL_NO_RESIDENCY=1"   # start_server.sh 的預設，不是 llama.cpp 的預設
   log "start server $1 backend=$3 MODEL=$(basename "$4") EXPS=$5 EXTRA=[$6] CTX=$9 BATCH=$RUN_BATCH UB=$RUN_UB$NR (free $(memfree)%)"
   if [ "$3" = llama ]; then
@@ -282,6 +298,7 @@ run_cfg() {
     grep -qE "$NOT_MEMORY" "$SL" && return 3
     return 1
   fi
+  write_meta "$@"
   log "footprint: $(footprint -p "$(pgrep -f "$SRV" | head -1)" 2>/dev/null | grep -i 'phys_footprint:' | head -1); wired: $(top -l 1 -n 0 | awk '/PhysMem/ {print $4}'); free $(memfree)%"
   case "$8" in *spec*) measure "$1" python3 -I scripts/spec_bench.py --label "$1" --fmt "$7" --n 96;; esac
   case "$8" in *agent*) measure "$1_agent" python3 -I scripts/agent_bench.py --label "$1_agent" --fmt "$7" --n 64 --pause 60;; esac
@@ -307,6 +324,7 @@ run_ollama() {  # $1=label $2=前置冷卻
   T0=$(trips); stop_server
   wait_quiet || { problem "$1 跳過：其他負載未結束"; return; }
   op_mark
+  guard_ok || finish "熱保護沒有在運作（thermal_level.log 超過 30 秒沒更新），停止"
   log "start $1 MODEL=$OLLAMA_MODEL num_ctx=8192 (free $(memfree)%)"
   OLLAMA_USED=1
   python3 -I scripts/ollama_bench.py --url "$OLLAMA_URL" --model "$OLLAMA_MODEL" --label "$1" --n 96 --num-ctx 8192 \
@@ -325,6 +343,7 @@ run_randread() {  # 量這台機器放模型的硬碟，用來把 120b 的 tok/s
   cool "$BENCH_COOLDOWN"
   stop_server
   wait_quiet || { problem "randread 跳過：其他負載未結束"; return; }
+  guard_ok || finish "熱保護沒有在運作（thermal_level.log 超過 30 秒沒更新），停止"
   log "start randread"
   python3 -I scripts/randread.py > "logs/mini_randread_console.log" 2>&1
   RC=$?
@@ -352,7 +371,19 @@ run_qwen_oc() {  # $1=label $2=EXTRA
 rm -f "$ROOT/logs/overnight_done"
 # 用 if，不用「pgrep || 腳本 &」：後者會多一個名為 run_mini.sh 的子 shell 等待腳本結束，
 # 而 resource_log 的迴圈要等 run_mini.sh 消失才停，兩邊會互等。
-if ! pgrep -f thermal_guard.sh >/dev/null; then scripts/thermal_guard.sh >/dev/null 2>&1 & fi
+# 熱保護用 PID 和 thermal_level.log 的更新時間確認有在跑，不用 pgrep 比對名稱（可能比對到別的程序而沒啟動）。
+# thermal_level.log 30 秒內有更新就表示已經有一份在跑（例如上一輪留下的），不再多開一份
+guard_fresh() { f="$ROOT/logs/thermal_level.log"; [ -f "$f" ] && [ $(( $(date +%s) - $(stat -f %m "$f") )) -lt 30 ]; }
+TG=""
+start_guard() { scripts/thermal_guard.sh >/dev/null 2>&1 & TG=$!; }
+guard_ok() {  # 量測和載入前呼叫；確認不了就重啟一次，還是不行回傳 1
+  guard_fresh && return 0
+  if [ -n "$TG" ] && kill -0 "$TG" 2>/dev/null; then sleep 12; guard_fresh && return 0; fi
+  log "熱保護沒有更新 thermal_level.log，重新啟動"
+  start_guard; sleep 15; guard_fresh
+}
+guard_fresh || start_guard
+sleep 3; guard_fresh || { sleep 12; guard_fresh; } || finish "熱保護啟動後沒有更新 thermal_level.log，不開始"
 MT0=$(memtrips)
 mem_guard & MG=$!
 # 背景程序不繼承 stdout/stderr，否則外層的輸出管線要等它們結束才會關閉
@@ -368,7 +399,7 @@ if [ "$MODE" = air ]; then
   else
     problem "opencode 試跑跳過，缺 $M"
   fi
-  finish "Air 驗證結束${PROBLEMS:+，有問題：$PROBLEMS}"
+  finish "Air 驗證結束${PROBLEMS:+，有問題：$PROBLEMS}" ok
 fi
 
 if [ "$MODE" = air_qwen ]; then
@@ -380,12 +411,12 @@ if [ "$MODE" = air_qwen ]; then
   else
     problem "Qwen 工具呼叫驗證跳過，缺 $M"
   fi
-  finish "Air Qwen 工具呼叫驗證結束${PROBLEMS:+，有問題：$PROBLEMS}"
+  finish "Air Qwen 工具呼叫驗證結束${PROBLEMS:+，有問題：$PROBLEMS}" ok
 fi
 
 if [ "$MODE" = air_mlx ]; then
   must air_mlx "$COOLDOWN" mlx "$MLX_MODEL" - "" chatml quality,stream 8192
-  finish "Air MLX 流程驗證結束${PROBLEMS:+，有問題：$PROBLEMS}"
+  finish "Air MLX 流程驗證結束${PROBLEMS:+，有問題：$PROBLEMS}" ok
 fi
 
 log "第 0 階段：Ollama 對照"
@@ -416,10 +447,10 @@ log "第 1 階段：llama.cpp Qwen"
 Q_EXPS="${QWEN_EXPS:-GPU}"   # QWEN_EXPS=CPU：專家層走 mmap，不佔 wired 記憶體，用時間換記憶體
 RC=0
 if phase_on 1 && [ "$Q_EXPS" = CPU ]; then
-  run_cfg mini_q_cpu "$COOLDOWN" llama "$QWEN" CPU "" chatml spec,agent,quality,stream 8192
+  run_cfg "mini_q${QTAG}_cpu" "$COOLDOWN" llama "$QWEN" CPU "" chatml spec,agent,quality,stream 8192
   case $? in 1|3) problem "Qwen exps=CPU 載入失敗"; Q_EXPS=none;; esac
 elif phase_on 1; then
-  run_cfg mini_q_gpu "$COOLDOWN" llama "$QWEN" GPU "" chatml spec,agent,quality,stream 8192
+  run_cfg "mini_q${QTAG}_gpu" "$COOLDOWN" llama "$QWEN" GPU "" chatml spec,agent,quality,stream 8192
   RC=$?
 else
   log "第 1 階段不在 PHASES，略過"
@@ -427,7 +458,7 @@ fi
 if [ "$RC" -eq 1 ]; then
   log "EXPS=GPU 載入失敗，退回 exps=CPU"
   Q_EXPS=CPU
-  run_cfg mini_q_cpu "$COOLDOWN" llama "$QWEN" CPU "" chatml spec,agent,quality,stream 8192
+  run_cfg "mini_q${QTAG}_cpu" "$COOLDOWN" llama "$QWEN" CPU "" chatml spec,agent,quality,stream 8192
   case $? in 1|3) problem "Qwen 兩種放法都載入失敗"; Q_EXPS=none;; esac
 elif [ "$RC" -eq 3 ]; then
   problem "mini_q_gpu 載入失敗：參數或模型檔不支援，不退回 CPU"; Q_EXPS=none
@@ -449,7 +480,7 @@ if phase_on 3v; then
   if [ -z "$M" ]; then
     log "opencode 版本：$(opencode_version)"
     OPENCODE_REPEATS=1 OPENCODE_TASKS=invoice_rounding; export OPENCODE_REPEATS OPENCODE_TASKS
-    run_qwen_oc "${VERIFY_LABEL:-mini_oc_qwen_verify}" "${VERIFY_EXTRA:---jinja}"
+    run_qwen_oc "${VERIFY_LABEL:-mini_oc_qwen${QTAG}_verify}" "${VERIFY_EXTRA:---jinja}"
     unset OPENCODE_REPEATS OPENCODE_TASKS
   else
     problem "opencode 設定驗證跳過，缺 $M"
@@ -473,8 +504,8 @@ elif [ -z "$M" ]; then
   if [ "$RC" -ne 0 ] || [ "$M_RC" != 0 ]; then
     problem "第 3 階段跳過：opencode ${OC_V:-未知版本} 煙霧測試沒過（見 logs/mini_oc_smoke_opencode_console.log）"
   else
-    run_qwen_oc mini_oc_qwen "--jinja"
-    run_qwen_oc mini_oc_qwen_ngram "--jinja --spec-type ngram-mod"
+    run_qwen_oc "mini_oc_qwen${QTAG}" "--jinja"
+    run_qwen_oc "mini_oc_qwen${QTAG}_ngram" "--jinja --spec-type ngram-mod"
     must mini_oc_20b "$COOLDOWN" llama "$B20" GPU "--jinja" harmony opencode 32768
   fi
 else
@@ -495,4 +526,4 @@ else
   problem "第 4 階段跳過，缺 $M"
 fi
 
-if [ -z "$PROBLEMS" ]; then finish "全部完成"; else finish "流程結束，但有問題：$PROBLEMS"; fi
+if [ -z "$PROBLEMS" ]; then finish "全部完成" ok; else finish "流程結束，但有問題：$PROBLEMS" ok; fi

@@ -1,0 +1,7 @@
+parse_duration: FAIL | gen 4096 @ 16.7 t/s | wall 249.5s | finish length | 內容是空的，思考 12637 字 | 'tion.py", line 4, in <module>\n    assert parse_duration(\'1h30m15s\') == 5415\n           ^^^^^^^^^^^^^^\nNameError: name \'parse_duration\' is not defined\n'
+merge_intervals: PASS | gen 2153 @ 17.1 t/s | wall 128.1s | finish stop
+LRUCache: PASS | gen 2666 @ 16.8 t/s | wall 161.8s | finish stop
+topo_sort: FAIL | gen 4096 @ 7.6 t/s | wall 538.6s | finish length | 內容是空的，思考 15837 字 | "n <module>\n    assert topo_sort({'b': ['a'], 'c': ['b'], 'a': []}) == ['a', 'b', 'c']\n           ^^^^^^^^^\nNameError: name 'topo_sort' is not defined\n"
+roman: FAIL | gen 4096 @ 12.6 t/s | wall 330.4s | finish length | 內容是空的，思考 12631 字 | '_q_36_cpu_quality_roman.py", line 4, in <module>\n    assert to_roman(1994) == \'MCMXCIV\'\n           ^^^^^^^^\nNameError: name \'to_roman\' is not defined\n'
+fix_bug: FAIL | gen 4096 @ 10.5 t/s | wall 397.9s | finish length | 內容是空的，思考 13446 字 | 'fix_bug.py", line 4, in <module>\n    assert top_words(\'b a B c a b\', 2) == [\'b\', \'a\']\n           ^^^^^^^^^\nNameError: name \'top_words\' is not defined\n'
+mini_q_36_cpu_quality: 2/6 passed | /Users/Shared/Flashback/logs/mini_q_36_cpu_quality_20261110_112638.jsonl

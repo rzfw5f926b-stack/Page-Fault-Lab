@@ -5,17 +5,21 @@ opencode 和推論伺服器之間放一個本機記錄代理（預設 8081 → 8
 訊息數、工具定義數、是否回傳 tool_calls。這樣就不依賴 opencode 的輸出格式，官方文件沒有列出那個格式。
 
 判定：opencode 結束後，把 tests/ 換回原始版本並加上 hidden/ 的測試再執行，模型改測試或寫死答案都騙不過。
-每題用 --timeout 限時。工作目錄和原始輸出在 logs/opencode_work/<label>/<題目>/，摘要寫到 logs/<label>_<時間>.jsonl。
+每題用 --timeout 限時。opencode 在 repo 外的暫存目錄執行（OPENCODE_WORK，預設系統暫存目錄下的 flashback_opencode_work），
+bash 是全部允許加黑名單，放在 repo 外，模型下錯指令（例如 git clean）也碰不到還沒 commit 的紀錄。
+每題結束後把工作目錄和原始輸出複製回 logs/opencode_work/<label>/<題目>/，摘要寫到 logs/<label>_<時間>.jsonl。
 
 用法：
   python3 -I scripts/opencode_tasks.py --validate       驗證題目：原始狀態要失敗，套上參考解答要全過（不需要模型）
   python3 -I scripts/opencode_tasks.py --label mini_oc_qwen
 環境變數 OPENCODE_EXTRA_ARGS 可追加 opencode run 的參數。
 """
-import argparse, http.client, http.server, json, os, re, shlex, shutil, signal, socketserver, subprocess, sys, threading, time
+import argparse, http.client, http.server, json, os, re, shlex, shutil, signal, socketserver, subprocess, sys, tempfile, threading, time
 
 ROOT = os.environ.get("FLASHBACK_ROOT", "/Volumes/LLM SSD/Flashback")
 TASKS = f"{ROOT}/tasks"
+# 用系統暫存目錄（路徑不含帳號名稱），不放在 repo 裡
+WORK_BASE = os.environ.get("OPENCODE_WORK") or os.path.join(tempfile.gettempdir(), "flashback_opencode_work")
 MODEL_ID = "local-model"
 UNITTEST = [sys.executable, "-I", "-m", "unittest", "discover", "-s", "tests", "-t", "."]
 
@@ -229,9 +233,13 @@ def opencode_args(exe):
 
 
 def thermal_level():
-    out = subprocess.run(["notifyutil", "-g", "com.apple.system.thermalpressurelevel"],
-                         capture_output=True, text=True).stdout.split()
-    return int(out[-1]) if out else 0
+    """讀不到或讀到非數字時回傳 1：看不到熱壓力就當作不安全，呼叫端會等待，等太久就停止。"""
+    try:
+        out = subprocess.run(["notifyutil", "-g", "com.apple.system.thermalpressurelevel"],
+                             capture_output=True, text=True, timeout=10).stdout.split()
+        return int(out[-1])
+    except (OSError, subprocess.SubprocessError, ValueError, IndexError):
+        return 1
 
 
 def wait_cool(seconds):
@@ -267,7 +275,9 @@ def count_tools(path):
 
 def run_one(name, a, rec, extra, rep=1):
     # 每題只跑一次時沿用舊路徑
-    work = f"{ROOT}/logs/opencode_work/{a.label}/{name}" + (f"_r{rep}" if a.repeats > 1 else "")
+    sub = f"{a.label}/{name}" + (f"_r{rep}" if a.repeats > 1 else "")
+    work = f"{WORK_BASE}/{sub}"
+    keep = f"{ROOT}/logs/opencode_work/{sub}"  # 結束後複製回這裡，和以前的路徑相同
     shutil.rmtree(work, ignore_errors=True)
     shutil.copytree(f"{TASKS}/{name}/repo", work)
     write_config(work, a.proxy_port)
@@ -308,6 +318,9 @@ def run_one(name, a, rec, extra, rep=1):
     # 只驗格式時題目沒做完，判對錯沒有意義
     passed, n, bad, tail = (None, 0, 0, "") if a.stop_after_tool_turns else grade(name, work)
     shutil.rmtree(f"{work}/.git", ignore_errors=True)  # 留著的話，外層 repo 會把工作目錄當成內嵌 repo，內容進不了 git
+    shutil.rmtree(keep, ignore_errors=True)
+    shutil.copytree(work, keep, symlinks=True)
+    shutil.copy2(out_path, f"{keep}.stdout")
     agent = [c for c in calls if c.get("tools")]  # 沒帶工具的是 opencode 產生標題的請求，不算一輪
     waits = [c.get("first_byte_s") for c in agent if c.get("first_byte_s") is not None]
     totals = [c["total_s"] for c in agent]
@@ -390,6 +403,7 @@ def main():
     extra = opencode_args(a.opencode)
     NO_CODE_MODE[0] = "--standalone" in extra
     os.makedirs(f"{ROOT}/logs/opencode_work/{a.label}", exist_ok=True)
+    os.makedirs(f"{WORK_BASE}/{a.label}", exist_ok=True)
     path = f"{ROOT}/logs/{a.label}_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
     runs = {n: [] for n in names}
     format_bad = 0

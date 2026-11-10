@@ -121,9 +121,13 @@ assert top_words('', 3) == []
 
 
 def thermal_level():
-    out = subprocess.run(["notifyutil", "-g", "com.apple.system.thermalpressurelevel"],
-                         capture_output=True, text=True).stdout.split()
-    return int(out[-1]) if out else 0
+    """讀不到或讀到非數字時回傳 1：看不到熱壓力就當作不安全，呼叫端會等待，等太久就停止。"""
+    try:
+        out = subprocess.run(["notifyutil", "-g", "com.apple.system.thermalpressurelevel"],
+                             capture_output=True, text=True, timeout=10).stdout.split()
+        return int(out[-1])
+    except (OSError, subprocess.SubprocessError, ValueError, IndexError):
+        return 1
 
 
 def extract_code(text):

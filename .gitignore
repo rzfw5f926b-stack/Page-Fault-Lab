@@ -9,3 +9,5 @@ __pycache__/
 # 只在本機用的工具（虛擬環境、opencode），各機器自己安裝
 .venv-mlx/
 .tools/
+# run_mini.sh 結束時的標記，給 thermal_guard.sh 和 resource_log.sh 停止用
+logs/overnight_done

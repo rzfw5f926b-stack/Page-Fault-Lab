@@ -98,6 +98,8 @@ spec_bench 用和第 3 項相同的改寫提示詞，生成 96 token：
 
 M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以下才是這台的數字；前面的 Air 數據是 M5、24GB、無風扇、外接 USB SSD。
 
+> **讀 SSD 的數字是上限。** mini 的模型放在系統碟上，`iostat` 量的 disk0 是整顆內建 SSD，包含同時間其他程式（Ollama、系統、另一個帳號）的讀寫，也包含寫入。所以這一節的「讀 SSD」MB／GB 是整顆硬碟的傳輸量，只能當上限，不全是模型讀取。Air 的數字是單獨一顆外接 SSD，沒有這個問題。
+
 ### 結論
 
 | 跑法 | 判斷 | 依據 |
