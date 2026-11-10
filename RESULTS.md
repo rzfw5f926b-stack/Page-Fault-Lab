@@ -98,6 +98,20 @@ spec_bench 用和第 3 項相同的改寫提示詞，生成 96 token：
 
 M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以下才是這台的數字；前面的 Air 數據是 M5、24GB、無風扇、外接 USB SSD。
 
+### 結論
+
+| 跑法 | 判斷 | 依據 |
+|---|---|---|
+| Qwen3-Coder-30B，mmap（`EXPS=CPU`），不加 ngram | **可以實際使用的候選** | 10～19 tok/s；opencode 一題 6.5 分鐘、15 輪、每輪最久 60 秒；wired 最高 8GB，可用記憶體最低 56%；熱壓力 0 |
+| Qwen3-Coder-30B，全放 GPU | 共用機不適合 | 最快（52～62 tok/s），但 wired 22GB、可用記憶體 11%，被記憶體保護中止 |
+| Qwen mmap 加 ngram-mod | 不建議 | 生成速度慢約 23%，草稿只接受 27% |
+| gpt-oss-120b，mmap | 跑得動，目前不適合當候選 | 1.7～1.9 tok/s，每輪光讀提示 45 秒以上、讀 SSD 80～100GB；沒有 opencode 數據，以 Qwen 那題的 token 量粗估一題 40 分鐘以上（推算） |
+
+- **可靠度還沒有數據。** Qwen 只跑過 2 次 opencode，都錯在同一個隱藏測試。兩次都跑了附帶的測試，看到通過才說完成，所以模型說「通過」不能當驗收，要由派工端自己跑規格測試。
+- mmap 時專家層在 CPU 計算，CPU 會接近滿載，一次只適合跑一個任務。
+- 沒量到：長時間滿載的散熱、多次重複的穩定度。opencode 數據是關掉 Code Mode 量的。
+- 要不要用、怎麼用，由 Codex總攬依自己的任務驗收判斷。
+
 ### Qwen3-Coder-30B-A3B（18.6GB）
 
 | 項目 | 全放 GPU（`EXPS=GPU`） | mmap（`EXPS=CPU`） |
