@@ -107,6 +107,7 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 | Qwen3-Coder-30B，mmap（`EXPS=CPU`），不加 ngram | **可以實際使用的候選** | 10～19 tok/s；opencode 一題 6.5 分鐘、15 輪、每輪最久 60 秒；wired 最高 8GB，可用記憶體最低 56%；熱壓力 0 |
 | Qwen3-Coder-30B，全放 GPU | 共用機不適合 | 最快（52～62 tok/s），但 wired 22GB、可用記憶體 11%，被記憶體保護中止 |
 | Qwen mmap 加 ngram-mod | 不建議 | 生成速度慢約 23%，草稿只接受 27% |
+| Qwen3.6-35B-A3B，mmap（`EXPS=CPU`） | 數據不足，還不能判斷 | 速度和 Qwen3-Coder 相近（14～17 tok/s）；品質題 4 題是思考用完 4,096 token 被截斷，不是答錯；混合架構要用 `-ub 512` 才不會每輪重算約 2,000 token；沒有 opencode 數據 |
 | gpt-oss-120b，mmap | 跑得動，目前不適合當候選 | 1.7～1.9 tok/s，每輪光讀提示 45 秒以上、讀 SSD 80～100GB；沒有 opencode 數據，以 Qwen 那題的 token 量粗估一題 40 分鐘以上（推算） |
 
 - **可靠度還沒有數據。** Qwen 只跑過 2 次 opencode，都錯在同一個隱藏測試。兩次都跑了附帶的測試，看到通過才說完成，所以模型說「通過」不能當驗收，要由派工端自己跑規格測試。
@@ -148,6 +149,34 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 
 兩次的做法不同（輪數、token 數不一樣），總時間不能直接比；但每秒生成 token 數慢了約 23%，草稿只接受 27%，在 mmap 下多算的草稿反而拖慢。**這個設定不建議加 ngram-mod**（只有 1 次，Air 上 spec_bench 的提升是另一種負載）。兩次模型都跑了附帶測試、看到 OK 才說完成，錯的都是隱藏測試。
 
+### Qwen3.6-35B-A3B（ggml-org Q4_K_M，20.5GB，`EXPS=CPU`、ctx 8192）
+
+思考型、混合架構（GGUF 是 `qwen35moe`：大部分層是線性注意力，每隔幾層一層一般注意力）。
+
+| 項目 | 數值 |
+|---|---|
+| 載入到就緒 | 5 s |
+| spec_bench（提示 1,991 token，生成 96） | 預填 20 s，14.5 tok/s |
+| agent_bench 三輪（`-b/-ub 2048`） | 13.8～16.1 tok/s；第 2、3 輪各重算 2,258／2,399 token（見下方前綴快取） |
+| 品質題 | 2/6，另外 4 題是思考用完額度（見下方） |
+| stream_bench | 只量到第一筆（首 token 12.3 s，10.9 tok/s），之後被記憶體保護中止 |
+| 可用記憶體 | 載入後 69%，中止時 57% |
+| swap | 整輪約 80 分鐘多 1.25GB，12:08 觸發保護（門檻 +1GB）；這台是共用機，增加的量不一定全來自這個模型 |
+| 熱壓力 | 0 |
+
+**品質題的 2/6 和 Qwen3-Coder 的 6/6 不是同一個條件。** 通過的 2 題（merge_intervals、LRUCache）各生成 2,153／2,666 token 後正常結束。沒過的 4 題（parse_duration、topo_sort、roman、fix_bug）都是 `finish length`：4,096 token 全部用在思考（12,600～15,800 字），回答是空的，判題因此報 `NameError`。這表示額度不夠，不能當成答錯。Qwen3-Coder 不思考，沒有這個問題。思考型模型要怎麼比（放寬額度、或關掉思考）還沒定。
+
+**前綴快取：混合架構要用較小的 `-ub`。** 線性注意力的狀態不能退回任意位置，只能退回 context checkpoint；llama.cpp（build 12110）的 checkpoint 落在「提示長度 − 一個批次」。所以 `-ub 2048` 時，每一輪都要重算約 2,048 token 加上新增的部分。純注意力的 Qwen3-Coder 可以直接截斷，沒有這個問題。改成 `-b/-ub 512` 重跑 agent_bench（2026-11-10 12:52，只跑 1 次）：
+
+| 項目 | `-b/-ub 2048` | `-b/-ub 512` |
+|---|---|---|
+| 第 1 輪：3,217 token 預填 | 16.5 s（195 tok/s） | 30.2 s（107 tok/s） |
+| 第 2 輪：保留／重算 | 1,169／2,258，11.1 s | 2,705／722，3.2 s |
+| 第 3 輪：保留／重算 | 約 1,380／2,399，15.7 s | 2,915／863，3.8 s |
+| 生成速度 | 13.8～16.1 tok/s | 14.8～20.8 tok/s |
+
+保留的長度剛好是「上一輪提示長度 − 512」，和 2048 時的規律一致。代價是第 1 輪預填慢將近一半。opencode 的系統提示約 1 萬 token，第 1 輪會多等約 40 秒（推算），之後每輪少重算約 1,500 token；淨效果要實際跑 opencode 才知道。`-b 2048 -ub 512` 分開設的效果沒測。
+
 ### gpt-oss-120b（63GB，`EXPS=CPU`、ctx 16384、`-b 8192 -ub 8192`）
 
 | 項目 | 無 ngram | `--spec-type ngram-mod` |
@@ -171,6 +200,8 @@ GGML_METAL_NO_RESIDENCY=1 llama-server -m models/Qwen3-Coder-30B-A3B-Instruct-Q4
   --host 127.0.0.1 --port 8080 -np 1 --jinja
 
 # 120b（mmap）：同上，換模型，用 -c 16384 -b 8192 -ub 8192，不確定工具呼叫時的上下文是否夠用
+
+# 混合架構（例如 Qwen3.6）：同 Qwen，但用 -b 512 -ub 512，否則每輪重算約 2,000 token
 ```
 
 opencode 2.1.3 要點：`opencode run --standalone --model local/local-model --format json`（不加 `--standalone` 會交給常駐服務，逾時殺不到）；工作目錄的 `opencode.json` 要有 `permission.execute = "deny"`（2.x 的 Code Mode 沙盒沒有 shell）；XDG 目錄要隔離。**這和 2.1.3 預設不同（關掉了 Code Mode）。**
