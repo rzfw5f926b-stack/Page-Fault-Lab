@@ -230,3 +230,27 @@ NameError: name \'top_words\' is not defined
 2026-11-10 12:08:17 swapouts since start: +89596 pages, swap used 5077 MB (start 3789)
 2026-11-10 12:08:17 end: swap 增加過多，中止
 2026-11-10 12:08:17 scrub_logs：清理 0 個紀錄檔，殘留 0 個
+2026-11-10 12:27:06 mini test start: Apple M6, 32 GB, swap used 4925MB, free 82%, PHASES=[h3]
+2026-11-10 12:27:06 第 0 階段：Ollama 對照
+2026-11-10 12:27:06 第 0 階段不在 PHASES，略過
+2026-11-10 12:27:06 第 1 階段：llama.cpp Qwen
+2026-11-10 12:27:06 第 1 階段不在 PHASES，略過
+2026-11-10 12:27:06 h3 階段：Qwen exps=CPU，-b/-ub 512，只跑 agent_bench
+2026-11-10 12:27:06 cooldown 1200 s
+2026-11-10 12:47:06 cool ok, level=0
+2026-11-10 12:47:06 start server mini_q_36_cpu_ub512 backend=llama MODEL=Qwen3.6-35B-A3B-Q4_K_M.gguf EXPS=CPU EXTRA=[] CTX=8192 BATCH=512 UB=512 GGML_METAL_NO_RESIDENCY=1 (free 83%)
+2026-11-10 12:47:14 server ready after 7s
+2026-11-10 12:47:15 probe 1 token: http=200, 1s
+2026-11-10 12:47:15 footprint:     phys_footprint: 454 MB; wired: (6061M; free 73%
+2026-11-10 12:47:15 cooldown 300 s
+2026-11-10 12:52:15 cool ok, level=0
+2026-11-10 12:55:03 mini_q_36_cpu_ub512_agent exit=0 : SSD = disk0, log = /Users/Shared/Flashback/logs/mini_q_36_cpu_ub512_agent_20261110_125215.jsonl t1_long      prompt 3217 new (+0 cached) in 30s | gen 64 @ 14.84 t/s | SSD 13091.6 MB (46.2 KB/op)，生成 3.5 MB/token | wall 34.49s | swapouts 0   rest 60s t2_followup  prompt 722 new (+2705 cached) in 3s | gen 64 @ 20.75 t/s | SSD 128.3 MB (41.0 KB/op)，生成 0.9 MB/token | wall 6.22s | swapouts 0   rest 60s t3_followup  prompt 863 new (+2915 cached) in 4s | gen 64 @ 18.55 t/s | SSD 293.5 MB (38.6 KB/op)，生成 1.4 MB/token | wall 7.23s | swapouts 0 
+2026-11-10 12:55:03 swapouts since start: +0 pages, swap used 4909 MB (start 4925)
+2026-11-10 12:55:03 第 2 階段：MLX Qwen
+2026-11-10 12:55:04 第 2 階段不在 PHASES，略過
+2026-11-10 12:55:04 第 3 階段：opencode
+2026-11-10 12:55:04 第 3 階段不在 PHASES，略過
+2026-11-10 12:55:04 第 4 階段：120b
+2026-11-10 12:55:04 第 4 階段不在 PHASES，略過
+2026-11-10 12:55:04 end: 全部完成
+2026-11-10 12:55:05 scrub_logs：清理 0 個紀錄檔，殘留 0 個

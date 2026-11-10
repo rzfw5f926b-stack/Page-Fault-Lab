@@ -1,0 +1,6 @@
+SSD = disk0, log = /Users/Shared/Flashback/logs/mini_q_36_cpu_ub512_agent_20261110_125215.jsonl
+t1_long      prompt 3217 new (+0 cached) in 30s | gen 64 @ 14.84 t/s | SSD 13091.6 MB (46.2 KB/op)，生成 3.5 MB/token | wall 34.49s | swapouts 0
+  rest 60s
+t2_followup  prompt 722 new (+2705 cached) in 3s | gen 64 @ 20.75 t/s | SSD 128.3 MB (41.0 KB/op)，生成 0.9 MB/token | wall 6.22s | swapouts 0
+  rest 60s
+t3_followup  prompt 863 new (+2915 cached) in 4s | gen 64 @ 18.55 t/s | SSD 293.5 MB (38.6 KB/op)，生成 1.4 MB/token | wall 7.23s | swapouts 0

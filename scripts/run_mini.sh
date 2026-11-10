@@ -6,7 +6,8 @@
 #   scripts/run_mini.sh --air-qwen-tools   在 Air 上驗證 Qwen 的工具呼叫格式：opencode 跑兩輪工具呼叫就停，不判對錯
 #   MLX_MODEL=<資料夾> scripts/run_mini.sh --air-mlx   在 Air 上用小模型走一遍 MLX 流程，只驗流程，速度沒有參考價值
 #   PHASES="1 3v 4" scripts/run_mini.sh    只跑列出的階段（空白分隔，預設 "0 1 2 3 4"）。3v = 第 1 階段後用 opencode 讓 Qwen 跑 1 題，確認設定可用，不算可靠度
-#   QWEN_MODEL、QWEN_TAG                   換 Qwen 模型檔（models/ 下的檔名）和紀錄名稱後綴（第 1、3v、3 階段）
+#   PHASES=h3 H3_UB=512                 只跑 Qwen exps=CPU 的 agent_bench，-b/-ub 改成 H3_UB，看混合架構每輪重算量
+#   QWEN_MODEL、QWEN_TAG                  換 Qwen 模型檔（models/ 下的檔名）和紀錄名稱後綴（第 1、3v、3 階段）
 #   QWEN_EXPS=CPU                       Qwen 直接用 exps=CPU（預設先試整個放 GPU）
 #   VERIFY_EXTRA、VERIFY_LABEL             3v 的伺服器參數和紀錄名稱（預設 "--jinja"、mini_oc_qwen${QTAG}_verify）
 #
@@ -462,6 +463,17 @@ if [ "$RC" -eq 1 ]; then
   case $? in 1|3) problem "Qwen 兩種放法都載入失敗"; Q_EXPS=none;; esac
 elif [ "$RC" -eq 3 ]; then
   problem "mini_q_gpu 載入失敗：參數或模型檔不支援，不退回 CPU"; Q_EXPS=none
+fi
+
+# h3：混合架構（例如 Qwen3.6）只能退回 checkpoint，checkpoint 落在最後一個批次之前，
+# 每輪會重算約一個批次。用較小的 -b/-ub 只跑 agent_bench，看重算量會不會跟著變小。
+if phase_on h3; then
+  H3_UB="${H3_UB:-512}"
+  log "h3 階段：Qwen exps=CPU，-b/-ub $H3_UB，只跑 agent_bench"
+  RUN_BATCH=$H3_UB; RUN_UB=$H3_UB
+  run_cfg "mini_q${QTAG}_cpu_ub$H3_UB" "$COOLDOWN" llama "$QWEN" CPU "" chatml agent 8192
+  case $? in 1|3) problem "h3 載入失敗";; esac
+  RUN_BATCH=2048; RUN_UB=2048
 fi
 
 log "第 2 階段：MLX Qwen"
