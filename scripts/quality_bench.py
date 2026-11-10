@@ -2,7 +2,10 @@
 """第 7 項：寫程式品質小測驗。用 /v1/chat/completions（伺服器套用模型自己的對話模板），
 請模型寫 6 個函式／類別，取出回答裡的 python 程式碼，再用固定的測試案例在子程序裡執行，計算通過數。
 
-- 溫度 0，每題 max_tokens 預設 4096（gpt-oss 會先推理，需要較多 token）。
+- 溫度 0，每題 max_tokens 預設 4096（gpt-oss 會先推理，需要較多 token）。思考型模型用 --max-tokens 放寬，
+  伺服器的 ctx 要大於提示加 max_tokens。
+- 沒過的題目記 failure_type：budget（finish_reason=length，額度用完）、no_code（回答沒有程式碼）、
+  timeout（測試逾時）、wrong（有程式碼但測試沒過）。budget 不能當成答錯。
 - 測試在 logs/quality_work/ 底下的暫存檔執行，用 python3 -I，逾時 20 秒。
 - 題目之間休息 --pause 秒，並等熱壓力回到 0。
 - 結果寫到 logs/<label>_<時間>.jsonl（含完整回答，方便事後檢查）。
@@ -146,6 +149,7 @@ def main():
     os.makedirs(work, exist_ok=True)
     out = f"{ROOT}/logs/{a.label}_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
     passed = 0
+    counts = {}
     with open(out, "w") as f:
         for i, (name, ask, tests) in enumerate(TASKS):
             if i:
@@ -173,20 +177,35 @@ def main():
             except subprocess.TimeoutExpired:
                 ok, err = False, "timeout"
             passed += ok
+            finish = r["choices"][0].get("finish_reason")
+            # 額度用完和答錯要分開：思考型模型可能把 max_tokens 全花在思考，回答是空的
+            if ok:
+                ftype = None
+            elif finish == "length":
+                ftype = "budget"
+            elif not content.strip() or not re.search(r"^\s*(def|class) ", code, re.M):
+                ftype = "no_code"
+            elif err == "timeout":
+                ftype = "timeout"
+            else:
+                ftype = "wrong"
+            counts[ftype] = counts.get(ftype, 0) + (ftype is not None)
             t = r.get("timings", {})
             usage = r.get("usage") or {}  # MLX 沒有 timings，只有 usage
-            rec = {"label": a.label, "task": name, "pass": ok, "error": err, "wall_s": round(time.time() - t0, 1),
+            rec = {"label": a.label, "task": name, "pass": ok, "failure_type": ftype, "max_tokens": a.max_tokens, "error": err, "wall_s": round(time.time() - t0, 1),
                    "gen_n": t.get("predicted_n") or usage.get("completion_tokens"), "gen_tps": t.get("predicted_per_second"),
-                   "prompt_n": t.get("prompt_n") or usage.get("prompt_tokens"), "finish_reason": r["choices"][0].get("finish_reason"),
+                   "prompt_n": t.get("prompt_n") or usage.get("prompt_tokens"), "finish_reason": finish,
                    # llama.cpp 用 reasoning_content，mlx-lm 用 reasoning
                    "reasoning_chars": len(msg.get("reasoning_content") or msg.get("reasoning") or ""), "content": content}
             f.write(json.dumps(rec, ensure_ascii=False) + "\n"); f.flush()
             tps = f"{rec['gen_tps']:.1f} t/s" if rec["gen_tps"] else "速度未回報"
             empty = f" | 內容是空的，思考 {rec['reasoning_chars']} 字" if not content.strip() else ""
-            print(f"{name}: {'PASS' if ok else 'FAIL'} | gen {rec['gen_n']} @ {tps} | "
+            print(f"{name}: {'PASS' if ok else 'FAIL ' + ftype} | gen {rec['gen_n']} @ {tps} | "
                   f"wall {rec['wall_s']}s | finish {rec['finish_reason']}{empty}" + ("" if ok else f" | {err[-150:]!r}"),
                   flush=True)
-    print(f"{a.label}: {passed}/{len(TASKS)} passed | {out}", flush=True)
+    fails = ", ".join(f"{k} {v}" for k, v in counts.items() if k and v)
+    print(f"{a.label}: {passed}/{len(TASKS)} passed{' | 失敗：' + fails if fails else ''}"
+          f" | max_tokens {a.max_tokens} | {out}", flush=True)
 
 
 if __name__ == "__main__":

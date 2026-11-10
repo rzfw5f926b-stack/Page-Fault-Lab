@@ -7,7 +7,9 @@
 #   MLX_MODEL=<資料夾> scripts/run_mini.sh --air-mlx   在 Air 上用小模型走一遍 MLX 流程，只驗流程，速度沒有參考價值
 #   PHASES="1 3v 4" scripts/run_mini.sh    只跑列出的階段（空白分隔，預設 "0 1 2 3 4"）。3v = 第 1 階段後用 opencode 讓 Qwen 跑 1 題，確認設定可用，不算可靠度
 #   PHASES=h3 H3_UB=512                 只跑 Qwen exps=CPU 的 agent_bench，-b/-ub 改成 H3_UB，看混合架構每輪重算量
-#   QWEN_MODEL、QWEN_TAG                  換 Qwen 模型檔（models/ 下的檔名）和紀錄名稱後綴（第 1、3v、3 階段）
+#   PHASES=h4 H4_MAX_TOKENS=28672       思考型模型的品質題：max_tokens 放寬、ctx 32768、-b/-ub 512（H4_UB），只跑品質題
+#   QUALITY_MAX_TOKENS                  其他階段品質題的 max_tokens（預設 4096）
+#   QWEN_MODEL、QWEN_TAG                 換 Qwen 模型檔（models/ 下的檔名）和紀錄名稱後綴（第 1、3v、3 階段）
 #   QWEN_EXPS=CPU                       Qwen 直接用 exps=CPU（預設先試整個放 GPU）
 #   VERIFY_EXTRA、VERIFY_LABEL             3v 的伺服器參數和紀錄名稱（預設 "--jinja"、mini_oc_qwen${QTAG}_verify）
 #
@@ -304,7 +306,7 @@ run_cfg() {
   case "$8" in *spec*) measure "$1" python3 -I scripts/spec_bench.py --label "$1" --fmt "$7" --n 96;; esac
   case "$8" in *agent*) measure "$1_agent" python3 -I scripts/agent_bench.py --label "$1_agent" --fmt "$7" --n 64 --pause 60;; esac
   case "$8" in *ub120*) measure "$1_agent" python3 -I scripts/agent_bench.py --label "$1_agent" --fmt "$7" --t1 agent_long.txt --turns t1_long,t2_followup --n 64 --pause 300;; esac
-  case "$8" in *quality*) measure "$1_quality" python3 -I scripts/quality_bench.py --label "$1_quality" --pause 60;; esac
+  case "$8" in *quality*) measure "$1_quality" python3 -I scripts/quality_bench.py --label "$1_quality" --pause 60 --max-tokens "${QUALITY_MAX_TOKENS:-4096}";; esac
   case "$8" in *stream*) [ -f scripts/stream_bench.py ] && measure "$1_stream" python3 -I scripts/stream_bench.py --url http://127.0.0.1:8080 --label "$1_stream";; esac
   case "$8" in *opencode*) measure "$1_opencode" scripts/run_opencode_tasks.sh "$1";; esac
   stop_server; check_swap
@@ -474,6 +476,17 @@ if phase_on h3; then
   run_cfg "mini_q${QTAG}_cpu_ub$H3_UB" "$COOLDOWN" llama "$QWEN" CPU "" chatml agent 8192
   case $? in 1|3) problem "h3 載入失敗";; esac
   RUN_BATCH=2048; RUN_UB=2048
+fi
+
+# h4：思考型模型的品質題。放寬 max_tokens（預設 28672），ctx 32768 要裝得下提示加額度；
+# 時間不是重點，目標是看它能不能做完。混合架構沿用 h3 的 -b/-ub 512。
+if phase_on h4; then
+  H4_UB="${H4_UB:-512}"; H4_MAX="${H4_MAX_TOKENS:-28672}"
+  log "h4 階段：Qwen exps=CPU 品質題，max_tokens $H4_MAX，ctx 32768，-b/-ub $H4_UB"
+  RUN_BATCH=$H4_UB; RUN_UB=$H4_UB; QUALITY_MAX_TOKENS=$H4_MAX
+  run_cfg "mini_q${QTAG}_cpu_think$H4_MAX" "$COOLDOWN" llama "$QWEN" CPU "" chatml quality 32768
+  case $? in 1|3) problem "h4 載入失敗";; esac
+  RUN_BATCH=2048; RUN_UB=2048; unset QUALITY_MAX_TOKENS
 fi
 
 log "第 2 階段：MLX Qwen"
