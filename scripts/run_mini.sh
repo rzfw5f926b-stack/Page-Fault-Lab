@@ -7,6 +7,7 @@
 #   MLX_MODEL=<資料夾> scripts/run_mini.sh --air-mlx   在 Air 上用小模型走一遍 MLX 流程，只驗流程，速度沒有參考價值
 #   PHASES="1 3v 4" scripts/run_mini.sh    只跑列出的階段（空白分隔，預設 "0 1 2 3 4"）。3v = 第 1 階段後用 opencode 讓 Qwen 跑 1 題，確認設定可用，不算可靠度
 #   QWEN_EXPS=CPU                          Qwen 直接用 exps=CPU（預設先試整個放 GPU）
+#   VERIFY_EXTRA、VERIFY_LABEL             3v 的伺服器參數和紀錄名稱（預設 "--jinja"、mini_oc_qwen_verify）
 #
 # 順序：
 #   第 0 階段  Ollama 對照：Ollama 的 gpt-oss:latest、llama-server 跑專案的 20b、llama-server 跑 Ollama 的 blob
@@ -448,7 +449,7 @@ if phase_on 3v; then
   if [ -z "$M" ]; then
     log "opencode 版本：$(opencode_version)"
     OPENCODE_REPEATS=1 OPENCODE_TASKS=invoice_rounding; export OPENCODE_REPEATS OPENCODE_TASKS
-    run_qwen_oc mini_oc_qwen_verify "--jinja"
+    run_qwen_oc "${VERIFY_LABEL:-mini_oc_qwen_verify}" "${VERIFY_EXTRA:---jinja}"
     unset OPENCODE_REPEATS OPENCODE_TASKS
   else
     problem "opencode 設定驗證跳過，缺 $M"

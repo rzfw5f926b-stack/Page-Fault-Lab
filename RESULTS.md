@@ -118,6 +118,20 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 
 只跑 1 題 1 次，**不算可靠度**。`invoice_rounding`：FAIL，7 個測試錯 2 個（`test_discount_half_up_per_line` 等隱藏測試）。387 秒、15 輪、10.03 tok/s，每輪最久 59.6 秒，第一個位元組最久 33.3 秒，工具失敗 0、HTTP 錯誤 0、沒有原始工具標記。模型實際跑了 5 次 shell，看到題目附的 3 個測試 OK 才說完成，所以這是沒過隱藏測試，不是沒跑測試就謊稱完成。wired 最高 8GB，可用記憶體最低 56%。
 
+同條件加 `--spec-type ngram-mod` 再跑 1 次（2026-11-10 09:59）：
+
+| 項目 | 無 ngram | ngram-mod |
+|---|---|---|
+| 結果 | FAIL，7 錯 2 | FAIL，7 錯 1（同樣錯 `test_discount_half_up_per_line`） |
+| 總時間／輪數 | 387 s／15 輪 | 765 s／21 輪 |
+| 生成 token | 3,222 | 4,946 |
+| 生成速度 | 10.03 tok/s | 7.77 tok/s |
+| 草稿接受 | — | 1,365／5,025（27%） |
+| 每輪最久／第一個位元組最久 | 59.6 s／33.3 s | 70.0 s／59.7 s |
+| shell 次數 | 5 | 7（edit 失敗 1 次） |
+
+兩次的做法不同（輪數、token 數不一樣），總時間不能直接比；但每秒生成 token 數慢了約 23%，草稿只接受 27%，在 mmap 下多算的草稿反而拖慢。**這個設定不建議加 ngram-mod**（只有 1 次，Air 上 spec_bench 的提升是另一種負載）。兩次模型都跑了附帶測試、看到 OK 才說完成，錯的都是隱藏測試。
+
 ### gpt-oss-120b（63GB，`EXPS=CPU`、ctx 16384、`-b 8192 -ub 8192`）
 
 | 項目 | 無 ngram | `--spec-type ngram-mod` |
