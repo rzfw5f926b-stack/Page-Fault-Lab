@@ -107,7 +107,7 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 | Qwen3-Coder-30B，mmap（`EXPS=CPU`），不加 ngram | **可以實際使用的候選** | 10～19 tok/s；opencode 一題 6.5 分鐘、15 輪、每輪最久 60 秒；wired 最高 8GB，可用記憶體最低 56%；熱壓力 0 |
 | Qwen3-Coder-30B，全放 GPU | 共用機不適合 | 最快（52～62 tok/s），但 wired 22GB、可用記憶體 11%，被記憶體保護中止 |
 | Qwen mmap 加 ngram-mod | 不建議 | 生成速度慢約 23%，草稿只接受 27% |
-| Qwen3.6-35B-A3B，mmap（`EXPS=CPU`） | 數據不足，還不能判斷 | 速度和 Qwen3-Coder 相近（14～17 tok/s）；品質題 4 題是思考用完 4,096 token 被截斷，不是答錯；混合架構要用 `-ub 512` 才不會每輪重算約 2,000 token；沒有 opencode 數據 |
+| Qwen3.6-35B-A3B，mmap（`EXPS=CPU`） | 品質題可用，opencode 還沒測 | 速度和 Qwen3-Coder 相近（14～17 tok/s）；放寬額度（28,672）後品質題 5/6，另 1 題（fix_bug）思考用完額度、交不出程式碼，0 題答錯；單題最久約 32 分鐘；混合架構要用 `-ub 512` 才不會每輪重算約 2,000 token；沒有 opencode 數據 |
 | gpt-oss-120b，mmap | 跑得動，目前不適合當候選 | 1.7～1.9 tok/s，每輪光讀提示 45 秒以上、讀 SSD 80～100GB；沒有 opencode 數據，以 Qwen 那題的 token 量粗估一題 40 分鐘以上（推算） |
 
 - **可靠度還沒有數據。** Qwen 只跑過 2 次 opencode，都錯在同一個隱藏測試。兩次都跑了附帶的測試，看到通過才說完成，所以模型說「通過」不能當驗收，要由派工端自己跑規格測試。
@@ -158,7 +158,7 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 | 載入到就緒 | 5 s |
 | spec_bench（提示 1,991 token，生成 96） | 預填 20 s，14.5 tok/s |
 | agent_bench 三輪（`-b/-ub 2048`） | 13.8～16.1 tok/s；第 2、3 輪各重算 2,258／2,399 token（見下方前綴快取） |
-| 品質題 | 2/6，另外 4 題是思考用完額度（見下方） |
+| 品質題 | 額度 4,096：2/6，另外 4 題是思考用完額度；額度 28,672：5/6（見下方） |
 | stream_bench | 只量到第一筆（首 token 12.3 s，10.9 tok/s），之後被記憶體保護中止 |
 | 可用記憶體 | 載入後 69%，中止時 57% |
 | swap | 整輪約 80 分鐘多 1.25GB，12:08 觸發保護（門檻 +1GB）；這台是共用機，增加的量不一定全來自這個模型 |
@@ -166,7 +166,20 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 
 **品質題的 2/6 和 Qwen3-Coder 的 6/6 不是同一個條件。** 通過的 2 題（merge_intervals、LRUCache）各生成 2,153／2,666 token 後正常結束。沒過的 4 題（parse_duration、topo_sort、roman、fix_bug）都是 `finish length`：4,096 token 全部用在思考（12,600～15,800 字），回答是空的，判題因此報 `NameError`。這表示額度不夠，不能當成答錯。Qwen3-Coder 不思考，沒有這個問題。
 
-**思考型模型的規則（2026-11-10 定）：放寬額度，不關思考。** 實際用途是過夜跑任務，時間不是重點，重點是能不能完成。品質題用 `max_tokens` 28,672、ctx 32,768（`run_mini.sh` 的 `h4` 階段），判題記 `failure_type`：`budget`（額度用完）、`no_code`、`timeout`、`wrong`，`budget` 不算答錯。Qwen3.6 照這個規則重跑還沒做。
+**思考型模型的規則（2026-11-10 定）：放寬額度，不關思考。** 實際用途是過夜跑任務，時間不是重點，重點是能不能完成。品質題用 `max_tokens` 28,672、ctx 32,768（`run_mini.sh` 的 `h4` 階段），判題記 `failure_type`：`budget`（額度用完）、`no_code`、`timeout`、`wrong`，`budget` 不算答錯。
+
+**照新規則重跑（h4，2026-11-10 14:22～15:30，`-b/-ub 512`）：5/6 通過，1 題額度用完，0 題答錯。** 之前被截斷的 parse_duration、topo_sort、roman 這次都通過。
+
+| 題目 | 結果 | 生成 token | 速度 | 時間 |
+|---|---|---|---|---|
+| parse_duration | 通過 | 8,503 | 16.3 tok/s | 528 s |
+| merge_intervals | 通過 | 2,153 | 16.8 tok/s | 130 s |
+| LRUCache | 通過 | 2,666 | 15.2 tok/s | 179 s |
+| topo_sort | 通過 | 5,017 | 16.5 tok/s | 306 s |
+| roman | 通過 | 6,897 | 16.6 tok/s | 419 s |
+| fix_bug | 額度用完（`budget`） | 28,672 | 14.9 tok/s | 1,926 s |
+
+fix_bug 把 28,672 token 全部用在思考（約 8.6 萬字），回答是空的。這題是修改既有程式，不是從頭寫；在思考上空轉而交不出東西，是過夜任務要注意的失敗型態。整輪沒有觸發保護，熱壓力 0，swap 沒有增加（開始 4,813MB，結束 4,621MB）。ctx 32,768 扣掉提示後，額度已經接近上限，再放寬要一起加大 ctx。
 
 **前綴快取：混合架構要用較小的 `-ub`。** 線性注意力的狀態不能退回任意位置，只能退回 context checkpoint；llama.cpp（build 12110）的 checkpoint 落在「提示長度 − 一個批次」。所以 `-ub 2048` 時，每一輪都要重算約 2,048 token 加上新增的部分。純注意力的 Qwen3-Coder 可以直接截斷，沒有這個問題。改成 `-b/-ub 512` 重跑 agent_bench（2026-11-10 12:52，只跑 1 次）：
 

@@ -1,0 +1,7 @@
+parse_duration: PASS | gen 8503 @ 16.3 t/s | wall 527.8s | finish stop
+merge_intervals: PASS | gen 2153 @ 16.8 t/s | wall 130.4s | finish stop
+LRUCache: PASS | gen 2666 @ 15.2 t/s | wall 178.7s | finish stop
+topo_sort: PASS | gen 5017 @ 16.5 t/s | wall 305.9s | finish stop
+roman: PASS | gen 6897 @ 16.6 t/s | wall 419.0s | finish stop
+fix_bug: FAIL budget | gen 28672 @ 14.9 t/s | wall 1925.8s | finish length | 內容是空的，思考 85868 字 | 'fix_bug.py", line 4, in <module>\n    assert top_words(\'b a B c a b\', 2) == [\'b\', \'a\']\n           ^^^^^^^^^\nNameError: name \'top_words\' is not defined\n'
+mini_q_36_cpu_think28672_quality: 5/6 passed | 失敗：budget 1 | max_tokens 28672 | /Users/Shared/Flashback/logs/mini_q_36_cpu_think28672_quality_20261110_142741.jsonl

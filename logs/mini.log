@@ -254,3 +254,31 @@ NameError: name \'top_words\' is not defined
 2026-11-10 12:55:04 第 4 階段不在 PHASES，略過
 2026-11-10 12:55:04 end: 全部完成
 2026-11-10 12:55:05 scrub_logs：清理 0 個紀錄檔，殘留 0 個
+2026-11-10 14:02:32 mini test start: Apple M6, 32 GB, swap used 4813MB, free 83%, PHASES=[h4]
+2026-11-10 14:02:32 第 0 階段：Ollama 對照
+2026-11-10 14:02:32 第 0 階段不在 PHASES，略過
+2026-11-10 14:02:32 第 1 階段：llama.cpp Qwen
+2026-11-10 14:02:32 第 1 階段不在 PHASES，略過
+2026-11-10 14:02:32 h4 階段：Qwen exps=CPU 品質題，max_tokens 28672，ctx 32768，-b/-ub 512
+2026-11-10 14:02:32 cooldown 1200 s
+2026-11-10 14:22:32 cool ok, level=0
+2026-11-10 14:22:32 start server mini_q_36_cpu_think28672 backend=llama MODEL=Qwen3.6-35B-A3B-Q4_K_M.gguf EXPS=CPU EXTRA=[] CTX=32768 BATCH=512 UB=512 GGML_METAL_NO_RESIDENCY=1 (free 83%)
+2026-11-10 14:22:39 server ready after 7s
+2026-11-10 14:22:40 probe 1 token: http=200, 1s
+2026-11-10 14:22:41 footprint:     phys_footprint: 947 MB; wired: (6623M; free 72%
+2026-11-10 14:22:41 cooldown 300 s
+2026-11-10 14:27:41 cool ok, level=0
+2026-11-10 15:30:49 mini_q_36_cpu_think28672_quality exit=0 : parse_duration: PASS | gen 8503 @ 16.3 t/s | wall 527.8s | finish stop merge_intervals: PASS | gen 2153 @ 16.8 t/s | wall 130.4s | finish stop LRUCache: PASS | gen 2666 @ 15.2 t/s | wall 178.7s | finish stop topo_sort: PASS | gen 5017 @ 16.5 t/s | wall 305.9s | finish stop roman: PASS | gen 6897 @ 16.6 t/s | wall 419.0s | finish stop fix_bug: FAIL budget | gen 28672 @ 14.9 t/s | wall 1925.8s | finish length | 內容是空的，思考 85868 字 | 'fix_bug.py", line 4, in <module>
+    assert top_words(\'b a B c a b\', 2) == [\'b\', \'a\']
+           ^^^^^^^^^
+NameError: name \'top_words\' is not defined
+' mini_q_36_cpu_think28672_quality: 5/6 passed | 失敗：budget 1 | max_tokens 28672 | /Users/Shared/Flashback/logs/mini_q_36_cpu_think28672_quality_20261110_142741.jsonl 
+2026-11-10 15:30:49 swapouts since start: +0 pages, swap used 4621 MB (start 4813)
+2026-11-10 15:30:49 第 2 階段：MLX Qwen
+2026-11-10 15:30:50 第 2 階段不在 PHASES，略過
+2026-11-10 15:30:50 第 3 階段：opencode
+2026-11-10 15:30:50 第 3 階段不在 PHASES，略過
+2026-11-10 15:30:50 第 4 階段：120b
+2026-11-10 15:30:50 第 4 階段不在 PHASES，略過
+2026-11-10 15:30:50 end: 全部完成
+2026-11-10 15:30:50 scrub_logs：清理 0 個紀錄檔，殘留 0 個

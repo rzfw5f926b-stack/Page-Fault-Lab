@@ -1,0 +1,1 @@
+{"label":"mini_q_36_cpu_think28672","backend":"llama","model_file":"Qwen3.6-35B-A3B-Q4_K_M.gguf","model_bytes":null,"exps":"CPU","extra":"","fmt":"chatml","items":"quality","ctx":"32768","batch":"512","ubatch":"512","llama_version":"version: 0.9.0 (build 12110, commit cd959bae9)","opencode_version":"","started":"2026-11-10 14:22:40"}
