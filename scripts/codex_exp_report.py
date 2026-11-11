@@ -232,8 +232,11 @@ def main():
               exhausted = bool(steps and cfg.get("steps") and steps >= cfg["steps"] - 1 and result != "ok")
               claimed = bool(last) and not att.get("reason")
           else:
-              exhausted = end == "tool-calls"  # 有過也照實標：改動已經過了、但模型還沒說完成就被截斷
-              claimed = end == "stop" and bool(last) and not att.get("reason")
+              # 有過也照實標：改動已經過了、但模型還沒說完成就被截斷。
+              # 用滿上限那一步是 opencode 強制模型停下（reason 也是 stop），不算自己說完成（night5r T5 r1）
+              at_limit = bool(steps and cfg.get("steps") and steps >= cfg["steps"])
+              exhausted = end == "tool-calls" or at_limit
+              claimed = end == "stop" and not at_limit and bool(last) and not att.get("reason")
           print(json.dumps({
             "model": model.group(1) if model else None,
             "config": cfg, "set": sset, "task": f"{pfx.upper()}{a['task']}",
