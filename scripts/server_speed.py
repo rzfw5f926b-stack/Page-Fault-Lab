@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import re,sys,collections
 # 把 llama-server 的 log 依 server 開機後的時間，每 30 分鐘加總生成和讀提示詞的速度。用法：scripts/server_speed.py <server log>
 b=collections.defaultdict(lambda:[0,0.0,0,0.0])

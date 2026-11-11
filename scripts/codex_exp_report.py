@@ -93,6 +93,29 @@ def max_turn_wait(exec_path):
     return round(max((b - a for a, b in zip(ts, ts[1:])), default=0) / 1000) if ts else None
 
 
+def end_reason(exec_path):
+    """exec.jsonl 最後一個事件判斷這次怎麼結束：
+    "stop"＝模型自己停下（最後是文字或 step_finish stop）；"tool-calls"＝最後一步還在呼叫工具就被截斷（步數用完）；
+    其他（例如逾時停在 step_start）回傳 "cut"；沒有檔案回傳 None。"""
+    last = None
+    try:
+        for line in open(exec_path, encoding="utf-8"):
+            try:
+                last = json.loads(line)
+            except ValueError:
+                continue
+    except OSError:
+        return None
+    if not last:
+        return None
+    part = last.get("part") or {}
+    if last.get("type") == "text" or part.get("reason") == "stop":
+        return "stop"
+    if part.get("reason") == "tool-calls":
+        return "tool-calls"
+    return "cut"
+
+
 def first_ts(exec_path):
     """exec.jsonl 第一個事件的時間（本機時間），找不到回傳 None。"""
     try:
@@ -138,7 +161,6 @@ def main():
         sset = args[args.index("--set") + 1]
     if "--config" in args:
         config = json.loads(args[args.index("--config") + 1])
-    restarts = config.pop("server_restarts", 0)  # 每題前重啟（3-1）時傳 1
     model = re.search(r"_llama_(.+?)(_[a-z0-9]+)?\.txt$", os.path.basename(res))
     base = os.path.splitext(os.path.basename(res))[0]
     logdir = os.path.join(os.path.dirname(res), "llama_logs", base)
@@ -201,15 +223,23 @@ def main():
               spec = None if rc is None else rc == 0
               hidden = None
           exj = [os.path.join(d, att["exec"])] if att.get("exec") else []
-          # 步數用到上限（opencode 在倒數第 1 步就停）還沒過，是做不完，不是說完成卻做錯
+          # 步數用完和說完成分開判斷，不互相覆蓋：
+          # 有 exec.jsonl 時看最後一步——還在呼叫工具就被截斷算步數用完（不論有沒有過）；模型自己停下且有最後一句話才算說完成。
+          # 沒有 exec.jsonl 時退回用步數判斷（到上限 -1 且沒過），claimed_done 保留原值。
           steps = att.get("steps")
-          exhausted = bool(steps and cfg.get("steps") and steps >= cfg["steps"] - 1 and result != "ok")
+          end = end_reason(exj[-1]) if exj else None
+          if end is None:
+              exhausted = bool(steps and cfg.get("steps") and steps >= cfg["steps"] - 1 and result != "ok")
+              claimed = bool(last) and not att.get("reason")
+          else:
+              exhausted = end == "tool-calls"  # 有過也照實標：改動已經過了、但模型還沒說完成就被截斷
+              claimed = end == "stop" and bool(last) and not att.get("reason")
           print(json.dumps({
             "model": model.group(1) if model else None,
             "config": cfg, "set": sset, "task": f"{pfx.upper()}{a['task']}",
             "round": a["round"], "attempt": n, "final_attempt": final,
             "result": result, "check_rc": rc, "spec_pass": spec, "hidden_pass": hidden,
-            "claimed_done": bool(last) and not att.get("reason") and not exhausted,
+            "claimed_done": claimed,
             "steps": steps, "steps_exhausted": exhausted,
             "ran_tests": any("pytest" in s for s in shell),
             "extra_files": [],  # dispatch 會還原允許清單外的改動；被擋時 result 為 touched_other_files
@@ -219,7 +249,6 @@ def main():
             "ctx_peak": att.get("max_step_input") or None,
             "seconds": secs, "max_turn_wait": max_turn_wait(exj[-1]) if exj else None,
             "swap_delta_mb": swap_d, "min_free_mem_pct": minfree, "thermal_max": thmax,
-            "server_restarts": restarts,
             "fail_detail": tilde(att.get("reason") or retry_reason.get(n)
                                  or (a.get("status") if final else None)) if result != "ok" else None,
             "changed": a.get("changed") if final else None,
