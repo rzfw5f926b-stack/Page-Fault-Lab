@@ -11,6 +11,7 @@
 #   CTX         llama-server 的 -c，同時傳給 LLAMA_CTX，預設 65536
 #   UB          -b/-ub，預設 512（混合架構要 512 前綴快取才有效）
 #   QWEN_MODEL  models/ 下的檔名，預設 Qwen3.6-35B-A3B-Q4_K_M.gguf；LLAMA_MODEL 是給 Codex總攬 的標籤
+#   RESTART_EACH 設了就在回歸組每題之前重啟 llama-server（測試需求 3-1）；結果檔每題一個（TAG 後加 _r<輪>t<題>）
 #   其他（OC_TIMEOUT、OC_STEPS、OC_RETRIES、OC_STALL、LLAMA_OUTPUT…）直接傳給 oc_llama.py
 # 保護：可用記憶體 <12%、swap 比開跑時多 SWAP_LIMIT_MB（預設 6144）、或系統記憶體壓力到 critical（kern.memorystatus_vm_pressure_level=4）
 #       → 殺掉 llama-server 和題目流程，留下 logs/MEM_TRIP_*。2026-11-11 使用者同意從 1GB 改成 6GB：mini 32GB、內建 SSD，
@@ -55,17 +56,24 @@ log "start $LABEL sets=(${SETS}) K=$K CTX=$CTX UB=$UB model=$QWEN_MODEL TAG=${TA
 log "ollama ps: $(ollama ps 2>/dev/null | tail -n +2 | awk '{print $1}' | tr '\n' ' ')"
 
 # 起 llama-server（專家層 exps=CPU 走 mmap）
-MODEL=$QWEN_MODEL EXPS=CPU CTX=$CTX BATCH=$UB EXTRA="--jinja" $ROOT/scripts/start_server.sh $LABEL -1 $UB &
-i=0; until [[ $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health) = 200 ]]; do
-  (( i >= 900 )) && finish "server 900 秒沒就緒"
-  (( i >= 5 )) && ! pgrep -f "$SRV" >/dev/null && finish "server 載入時掛掉"
-  sleep 1; ((i++))
-done
-log "server ready after ${i}s"
-CODE=$(curl -s -m 900 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
-  -d '{"messages":[{"role":"user","content":"hi"}],"max_tokens":1}' http://127.0.0.1:8080/v1/chat/completions)
-[[ $CODE = 200 ]] || finish "probe http=$CODE"
-log "probe ok; footprint $(footprint -p $(pgrep -f "$SRV" | head -1) 2>/dev/null | awk '/phys_footprint:/ {print $2$3; exit}')"
+start_srv() {
+  MODEL=$QWEN_MODEL EXPS=CPU CTX=$CTX BATCH=$UB EXTRA="--jinja" $ROOT/scripts/start_server.sh $LABEL -1 $UB &
+  i=0; until [[ $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health) = 200 ]]; do
+    (( i >= 900 )) && finish "server 900 秒沒就緒"
+    (( i >= 5 )) && ! pgrep -f "$SRV" >/dev/null && finish "server 載入時掛掉"
+    sleep 1; ((i++))
+  done
+  log "server ready after ${i}s"
+  CODE=$(curl -s -m 900 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
+    -d '{"messages":[{"role":"user","content":"hi"}],"max_tokens":1}' http://127.0.0.1:8080/v1/chat/completions)
+  [[ $CODE = 200 ]] || finish "probe http=$CODE"
+  log "probe ok; footprint $(footprint -p $(pgrep -f "$SRV" | head -1) 2>/dev/null | awk '/phys_footprint:/ {print $2$3; exit}')"
+}
+stop_srv() {  # 正常停 server（不是保護觸發），等它真的結束
+  pkill -f "$SRV"; i=0; while pgrep -f "$SRV" >/dev/null && (( i < 60 )); do sleep 1; ((i++)); done
+  pgrep -f "$SRV" >/dev/null && { pkill -9 -f "$SRV"; sleep 2; }
+}
+start_srv
 
 # 資源紀錄與保護
 RESOURCE_LOG_OWNER=$$ sh $ROOT/scripts/resource_log.sh &
@@ -92,8 +100,18 @@ for s in $SETS; do
   case $s in
     hard) log "== hard tasks=(${HARD_TASKS:-1 2 3 4 5 6})"
           exp/accept_hard.sh llama "${HARD_TASKS:-1 2 3 4 5 6}" >> $LOG 2>&1; log "hard rc=$?";;
-    reg)  log "== reg tasks=(${REG_TASKS:-default})"
-          TASKS="${REG_TASKS:-1 2 3 4 5}" OC_LLAMA=1 exp/accept.sh >> $LOG 2>&1; log "reg rc=$?";;
+    reg)  log "== reg tasks=(${REG_TASKS:-default}) restart_each=${RESTART_EACH:-0}"
+          if [[ -n $RESTART_EACH ]]; then
+            # 3-1：每題之前重啟 server。accept.sh 一次只跑一題一輪（K=1），TAG 加上 _r<輪>t<題> 分開存，事後再合併
+            for r in $(seq $K); do for t in ${=${REG_TASKS:-1 2 3 4 5}}; do
+              tripped && finish "server 不在（保護觸發或掛掉），停止"
+              stop_srv; start_srv
+              log "-- r$r t$t"
+              K=1 TAG=${TAG}_r${r}t${t} TASKS=$t OC_LLAMA=1 exp/accept.sh >> $LOG 2>&1; log "r$r t$t rc=$?"
+            done; done
+          else
+            TASKS="${REG_TASKS:-1 2 3 4 5}" OC_LLAMA=1 exp/accept.sh >> $LOG 2>&1; log "reg rc=$?"
+          fi;;
     *) log "未知的組 $s";;
   esac
 done

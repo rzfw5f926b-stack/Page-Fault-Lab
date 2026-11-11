@@ -138,6 +138,7 @@ def main():
         sset = args[args.index("--set") + 1]
     if "--config" in args:
         config = json.loads(args[args.index("--config") + 1])
+    restarts = config.pop("server_restarts", 0)  # 每題前重啟（3-1）時傳 1
     model = re.search(r"_llama_(.+?)(_[a-z0-9]+)?\.txt$", os.path.basename(res))
     base = os.path.splitext(os.path.basename(res))[0]
     logdir = os.path.join(os.path.dirname(res), "llama_logs", base)
@@ -200,12 +201,16 @@ def main():
               spec = None if rc is None else rc == 0
               hidden = None
           exj = [os.path.join(d, att["exec"])] if att.get("exec") else []
+          # 步數用到上限（opencode 在倒數第 1 步就停）還沒過，是做不完，不是說完成卻做錯
+          steps = att.get("steps")
+          exhausted = bool(steps and cfg.get("steps") and steps >= cfg["steps"] - 1 and result != "ok")
           print(json.dumps({
             "model": model.group(1) if model else None,
             "config": cfg, "set": sset, "task": f"{pfx.upper()}{a['task']}",
             "round": a["round"], "attempt": n, "final_attempt": final,
             "result": result, "check_rc": rc, "spec_pass": spec, "hidden_pass": hidden,
-            "claimed_done": bool(last) and not att.get("reason"),
+            "claimed_done": bool(last) and not att.get("reason") and not exhausted,
+            "steps": steps, "steps_exhausted": exhausted,
             "ran_tests": any("pytest" in s for s in shell),
             "extra_files": [],  # dispatch 會還原允許清單外的改動；被擋時 result 為 touched_other_files
             "think_tokens": att.get("tokens_reasoning") or None,
@@ -214,7 +219,7 @@ def main():
             "ctx_peak": att.get("max_step_input") or None,
             "seconds": secs, "max_turn_wait": max_turn_wait(exj[-1]) if exj else None,
             "swap_delta_mb": swap_d, "min_free_mem_pct": minfree, "thermal_max": thmax,
-            "server_restarts": 0,
+            "server_restarts": restarts,
             "fail_detail": tilde(att.get("reason") or retry_reason.get(n)
                                  or (a.get("status") if final else None)) if result != "ok" else None,
             "changed": a.get("changed") if final else None,
