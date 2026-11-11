@@ -1,0 +1,9 @@
+2026-11-11 00:03:49 start codex_exp_qwen3_6-35b-a3b_night2 sets=(hard) K=3 CTX=65536 UB=512 model=Qwen3.6-35B-A3B-Q4_K_M.gguf TAG=night2 OC_TIMEOUT=3600 OC_STEPS= OC_RETRIES= LLAMA_OUTPUT= swap=5130MB swap_limit=+6144MB free=86% opencode=opencode v2.1.3 llama=version: 0.9.0 (build 12110, commit cd959bae9)
+2026-11-11 00:03:49 ollama ps: 
+2026-11-11 00:03:57 server ready after 7s
+2026-11-11 00:03:58 probe ok; footprint 1566MB
+2026-11-11 00:03:58 == hard tasks=(1 2 3 4 5 6)
+2026-11-11 00:18:00 MEM_TRIP free=79% swap=13230MB (start 5130MB) pressure=1
+2026-11-11 00:18:01 hard rc=143
+2026-11-11 00:18:01 end: 跑完時 server 不在（保護觸發或掛掉） swap=13279MB (start 5130MB) free=81%
+2026-11-11 00:18:01 scrub_logs：清理 0 個紀錄檔，殘留 0 個

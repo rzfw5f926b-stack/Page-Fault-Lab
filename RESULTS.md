@@ -108,6 +108,7 @@ M6、32GB、內建 SSD（disk0）、llama.cpp build 12110、opencode 2.1.3。以
 | Qwen3-Coder-30B，全放 GPU | 共用機不適合 | 最快（52～62 tok/s），但 wired 22GB、可用記憶體 11%，被記憶體保護中止 |
 | Qwen mmap 加 ngram-mod | 不建議 | 生成速度慢約 23%，草稿只接受 27% |
 | Qwen3.6-35B-A3B，mmap（`EXPS=CPU`） | 品質題可用；opencode 9 次過 7 次，樣本還不夠 | 速度和 Qwen3-Coder 相近（14～17 tok/s）；放寬額度（28,672）後品質題 5/6，另 1 題（fix_bug）思考用完額度、交不出程式碼，0 題答錯；單題最久約 32 分鐘；混合架構要用 `-ub 512` 才不會每輪重算約 2,000 token；opencode 驗證題 1/1 通過（443 秒，Qwen3-Coder 同題沒過）；可靠度 9 次過 7 次（calc_language 3 次過 1 次，其他 3 題 6/6），每次 8～31 分鐘；第 3 輪被記憶體保護中止（swap 11 秒內 +1.7GB，形態像系統一次寫出壓縮記憶體） |
+| Qwen3.6-35B-A3B，Codex總攬 難題組（派工腳本，residency 開） | **難題組 17/18，連續 6 小時 50 分沒出事** | pass^3 5/6 題、第一次就過 16/18；1 次假通過（H4，規格過、隱藏沒過，重試後修正）；1 次 opencode header 5 分鐘逾時（H2，思考太久）；swap 最多 +1.7GB、熱壓力 0。見下方「Codex總攬 難題組」 |
 | gpt-oss-120b，mmap | 跑得動，目前不適合當候選 | 1.7～1.9 tok/s，每輪光讀提示 45 秒以上、讀 SSD 80～100GB；沒有 opencode 數據，以 Qwen 那題的 token 量粗估一題 40 分鐘以上（推算） |
 
 - **可靠度還沒有數據。** Qwen 只跑過 2 次 opencode，都錯在同一個隱藏測試。兩次都跑了附帶的測試，看到通過才說完成，所以模型說「通過」不能當驗收，要由派工端自己跑規格測試。
@@ -208,6 +209,17 @@ fix_bug 把 28,672 token 全部用在思考（約 8.6 萬字），回答是空�
 | 生成速度 | 13.8～16.1 tok/s | 14.8～20.8 tok/s |
 
 保留的長度剛好是「上一輪提示長度 − 512」，和 2048 時的規律一致。代價是第 1 輪預填慢將近一半。opencode 的系統提示約 1 萬 token，第 1 輪會多等約 40 秒（推算），之後每輪少重算約 1,500 token；淨效果要實際跑 opencode 才知道。`-b 2048 -ub 512` 分開設的效果沒測。
+
+### Codex總攬 難題組 H1～H6，K=3（2026-11-11 02:15～09:05）
+
+照 Codex總攬 的測試需求，用它的 `exp/accept_hard.sh` 和 `exp/oc_llama.py` 跑（worker 提示、權限、steps 20、驗收都沿用派工），Flashback 用 `scripts/run_codex_exp.sh` 起 server（`EXPS=CPU`、`-ub 512`、ctx 65536、`RESIDENCY=1`）和保護。逾時放寬到 3600 秒、output 32768。完整摘要和每次嘗試的 jsonl 在 [logs/codex_exp/](logs/codex_exp/)，轉檔腳本是 `scripts/codex_exp_report.py`。
+
+- **成績**：pass^3 5/6 題、單次 17/18；只算第一次嘗試是 16/18。gpt-oss 同組是 7/12、MiniMax M3 是 11/12。gpt-oss 卡住的 H5（改簽名沒追呼叫端）和 H6（步數用完沒跑測試），Qwen3.6 都是 3/3。
+- **假通過 1 次**：H4 r3 第 1 次，規格測試全過、隱藏測試沒過，模型也回報完成；自動重試後修正。以規格過的 18 次來算是 1/18。
+- **新的失敗模式**：H2 r1 第一回合思考約 17,400 token（約 18 分鐘）。opencode 等 header 的預設上限是 5 分鐘，連續 4 次逾時後判成執行錯誤。轉接腳本只設了整個請求的 `timeout`，沒設 header 逾時。這可以機械判定，已交給 Codex總攬。
+- **context**：峰值中位數 17k、最大 42k。前一晚 H1 超過 65,536 時，llama-server 回明確的 400 錯誤，沒有靜默截斷。
+- **swap 暴增和 Metal residency**：前兩晚（`GGML_METAL_NO_RESIDENCY=1`，start_server.sh 預設）都在第 2 題被 swap 暴增中止，一次 7 秒 +8GB；當時 wired 在 3.3GB 和 7.1GB 間切換。改成 residency 開之後，wired 全程 6.9～7.3GB，6 小時 50 分只在題目交接時出現 3 次 +1GB 左右，最多比開跑時 +1.7GB，熱壓力 0，可用記憶體最低 30%。「NO_RESIDENCY 會讓 Metal 緩衝區閒置時被系統回收」有 llama.cpp 原始碼支持；「因此觸發 swap 暴增」是依這兩組對照推論的。
+- 還沒做：回歸組（1-2）、放寬條件對照（2-3）、每題重啟 vs 不重啟（3-1）、和其他排程同時跑（3-2）。
 
 ### gpt-oss-120b（63GB，`EXPS=CPU`、ctx 16384、`-b 8192 -ub 8192`）
 
