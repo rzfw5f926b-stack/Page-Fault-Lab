@@ -177,6 +177,8 @@ def main():
         if os.path.exists(cfgf):
             c = json.load(open(cfgf))
             cfg.update({k: c.get(k) for k in ("ctx", "output", "steps", "stall", "effort")})
+            if isinstance(cfg.get("steps"), str):  # oc_llama.py 設了 OC_STEPS 時直接寫環境變數的字串
+                cfg["steps"] = int(cfg["steps"])
             argv = c.get("argv", [])
             if "--timeout" in argv:
                 cfg["timeout"] = int(argv[argv.index("--timeout") + 1])
