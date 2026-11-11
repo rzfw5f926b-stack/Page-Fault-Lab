@@ -67,6 +67,8 @@
 
 ## 第 2 部分（部分）
 
+> **2026-11-11 15:30 更正**：下面「單回合思考超過 5 分鐘就一定失敗」是錯的。回歸組 night3r 有一個請求連續生成 21.8 分鐘也沒逾時。重新看 server log，逾時的是和第一個請求幾乎同時送出、排在它後面的第二個請求。詳見 `摘要_reg_qwen3.6-35b-a3b_night3r.md` 的「修正 night3 對 header 逾時的判斷」。
+
 - **2-1 思考空轉**：opencode 回報的 reasoning token 一律是 0，思考算在 output 裡，所以 `think_tokens` 分不出來。用 output token 代替：每次嘗試中位數 2,787，最大 12,398（H1 r1）。沒有任何一次用完額度（budget 0 次）。
   - **新發現的失敗模式**：H2 r1 第一回合思考了約 17,400 token（約 18 分鐘，15.7 t/s）。opencode 每 300 秒報一次 `provider.transport: Timed out waiting for response headers` 並重送；單一 slot 讓重送的請求只能排隊，4 次後放棄，判成執行錯誤。
   - opencode 官方文件（https://opencode.ai/docs/providers/ ）寫 header 逾時預設 5 分鐘，要另外設 `headerTimeout`；provider 的 `timeout` 只管整個請求。這是 Haiku 查到的，欄位應該放在 `options` 還是 `settings` 還沒驗證。`oc_llama.py` 沒設，所以單回合思考超過 5 分鐘就一定失敗。這屬於轉接層，Flashback 沒改。

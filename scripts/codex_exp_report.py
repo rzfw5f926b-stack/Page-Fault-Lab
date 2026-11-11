@@ -26,10 +26,12 @@ def parse_results(path):
         if m:
             day = dt.datetime.strptime(re.sub(" +", " ", m.group(1)).replace(" CST", ""), "%a %b %d %H:%M:%S %Y").date()
             continue
-        m = re.match(r"== r(\d+) [ht](\d+) (\d\d:\d\d:\d\d)", line)
+        # 回歸組（accept_k3.sh）的標題沒有時間，開始時間改從 exec.jsonl 取（見 main）
+        m = re.match(r"== r(\d+) [ht](\d+)(?: (\d\d:\d\d:\d\d))?\s*$", line)
         if m:
-            cur = {"round": int(m.group(1)), "task": int(m.group(2)),
-                   "start": dt.datetime.combine(day, dt.time.fromisoformat(m.group(3)))}
+            start = (dt.datetime.combine(day, dt.time.fromisoformat(m.group(3)))
+                     if m.group(3) and day else None)
+            cur = {"round": int(m.group(1)), "task": int(m.group(2)), "start": start}
             out.append(cur)
             continue
         if cur is None:
@@ -48,7 +50,7 @@ def parse_results(path):
             cur["changed"] = [] if v.startswith("-") else [x.strip() for x in v.split(",")]
     # 跨午夜：開始時間比前一筆早就加一天
     for a, b in zip(out, out[1:]):
-        while b["start"] < a["start"]:
+        while a["start"] and b["start"] and b["start"] < a["start"]:
             b["start"] += dt.timedelta(days=1)
     return out
 
@@ -91,6 +93,21 @@ def max_turn_wait(exec_path):
     return round(max((b - a for a, b in zip(ts, ts[1:])), default=0) / 1000) if ts else None
 
 
+def first_ts(exec_path):
+    """exec.jsonl 第一個事件的時間（本機時間），找不到回傳 None。"""
+    try:
+        for line in open(exec_path, encoding="utf-8"):
+            try:
+                t = json.loads(line).get("timestamp")
+            except ValueError:
+                continue
+            if t:
+                return dt.datetime.fromtimestamp(t / 1000)
+    except OSError:
+        pass
+    return None
+
+
 def classify(a, att, check_rc):
     """對應測試需求的 result：ok／wrong／budget／timeout／stall／ctx_overflow／crash／too_many_lines／touched_other_files。"""
     st = a.get("status", "")
@@ -103,7 +120,7 @@ def classify(a, att, check_rc):
         return "stall"
     if "context" in reason or "exceed" in reason:
         return "ctx_overflow"
-    if "行數" in st or "超過上限" in st:
+    if "行數" in st or "超過上限" in st or "改動過大" in st:
         return "too_many_lines"
     if "其他檔" in st or "不允許" in st:
         return "touched_other_files"
@@ -149,7 +166,16 @@ def main():
                     checks[c.get("attempt")] = c.get("rc")
                 except ValueError:
                     pass
-        t0 = a["start"]
+        # dispatch.log 記了每次被重試的原因，例如「第 1 次：改動過大（+10 -1），已還原，重試」
+        retry_reason = {}
+        try:
+            for line in open(os.path.join(d, "dispatch.log"), encoding="utf-8"):
+                m = re.match(r"第 (\d+) 次：([^（，]+)", line)
+                if m:
+                    retry_reason[int(m.group(1))] = m.group(2).strip()
+        except OSError:
+            pass
+        t0 = a["start"] or first_ts(os.path.join(d, "exec.jsonl"))
         for i, af in enumerate(atts or [None]):
           att = json.load(open(af)) if af else {}
           n = att.get("attempt", i + 1)
@@ -157,13 +183,13 @@ def main():
           rc = checks.get(n, a.get("check_rc") if final else None)
           if final:
               result = classify(a, att, rc)
-          elif att.get("reason"):
-              result = classify({"status": "FAIL:" + att["reason"]}, att, rc)
+          elif att.get("reason") or retry_reason.get(n):
+              result = classify({"status": "FAIL:" + (att.get("reason") or retry_reason[n])}, att, rc)
           else:
               result = "ok" if rc == 0 else "wrong"
           secs = att.get("seconds") or (a.get("seconds") if final else None)
-          t1 = t0 + dt.timedelta(seconds=secs or 0)
-          swap_d, minfree, thmax = window(rows, t0, t1)
+          t1 = t0 + dt.timedelta(seconds=secs or 0) if t0 else None
+          swap_d, minfree, thmax = window(rows, t0, t1) if t0 else (None, None, None)
           t0 = t1
           shell = att.get("shell_cmds") or []
           last = att.get("last_text") or ""
@@ -189,7 +215,8 @@ def main():
             "seconds": secs, "max_turn_wait": max_turn_wait(exj[-1]) if exj else None,
             "swap_delta_mb": swap_d, "min_free_mem_pct": minfree, "thermal_max": thmax,
             "server_restarts": 0,
-            "fail_detail": tilde(att.get("reason")) if result != "ok" else None,
+            "fail_detail": tilde(att.get("reason") or retry_reason.get(n)
+                                 or (a.get("status") if final else None)) if result != "ok" else None,
             "changed": a.get("changed") if final else None,
           }, ensure_ascii=False))
 
