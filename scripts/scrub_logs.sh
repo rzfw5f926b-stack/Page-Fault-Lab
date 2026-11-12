@@ -25,8 +25,15 @@ while IFS= read -r f; do
     for my $x (@n) { s/(?<!\w)\Q$x\E(?!\w)/<redacted>/g }' "$f"
   N=$((N+1))
 done < "$TMP"
-found "$ROOT" > "$TMP"
+# 殘留檢查只看會進 git 的檔案（已追蹤，加上沒被忽略的新檔），本機專用的檔案（CLAUDE.md、交接.md 等，列在 .git/info/exclude）不算。
+# 另外通用檢查：任何 /Users/<名稱>，除了 /Users/Shared 和題目裡的假路徑 /Users/dev，都算殘留（抓到其他帳號的名稱）。
+files() { git -C "$ROOT" ls-files -co --exclude-standard -z; }
+{ files | (cd "$ROOT" && xargs -0 grep -IlF -e "$HOME") 2>/dev/null
+  names | while IFS= read -r n; do files | (cd "$ROOT" && xargs -0 grep -IlwF -e "$n") 2>/dev/null; done
+  files | (cd "$ROOT" && xargs -0 grep -IlE '/Users/[A-Za-z0-9._-]+') 2>/dev/null | while IFS= read -r f; do
+    grep -IoE '/Users/[A-Za-z0-9._-]+' "$ROOT/$f" | grep -qvxE '/Users/(Shared|dev)' && echo "$f"
+  done; } | sort -u > "$TMP"
 LEFT=$(wc -l < "$TMP" | tr -d ' ')
 echo "scrub_logs：清理 $N 個紀錄檔，殘留 $LEFT 個"
-if [ "$LEFT" -gt 0 ]; then sed "s#^$ROOT/##" "$TMP"; rm -f "$TMP"; exit 1; fi
+if [ "$LEFT" -gt 0 ]; then cat "$TMP"; rm -f "$TMP"; exit 1; fi
 rm -f "$TMP"

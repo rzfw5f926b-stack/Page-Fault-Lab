@@ -103,8 +103,9 @@ RESOURCE_LOG_OWNER=$$ sh $ROOT/scripts/resource_log.sh &
 GD=$!
 
 tripped() {
+  [[ -f $TRIPF ]] && return 0   # 保護正常觸發後迴圈會自己結束，先看標記檔，才不會誤記成「保護迴圈不在了」
   kill -0 $GD 2>/dev/null || { log "保護迴圈不在了"; return 0; }
-  [[ -f $TRIPF ]] || ! pgrep -f "$SRV" >/dev/null
+  ! pgrep -f "$SRV" >/dev/null
 }
 cd $CX
 for s in $SETS; do

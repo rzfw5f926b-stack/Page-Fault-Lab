@@ -134,8 +134,26 @@ def thermal_level():
 
 
 def extract_code(text):
-    blocks = re.findall(r"```(?:python|py)?\s*\n(.*?)```", text, re.S)
-    return "\n\n".join(blocks) if blocks else text
+    """逐行配對 ``` 的開頭和結尾。標成 python/py 的區塊全部接起來；
+    沒有的話取最後一個沒標語言的區塊；都沒有就整段當程式碼。其他語言的區塊不取。"""
+    blocks, lang, buf = [], None, []
+    for line in text.splitlines():
+        s = line.strip()
+        if lang is None:
+            if s.startswith("```"):
+                lang, buf = s[3:].strip().lower(), []
+        elif s == "```":
+            blocks.append((lang, "\n".join(buf)))
+            lang = None
+        else:
+            buf.append(line)
+    if lang is not None:  # 回答被截斷、最後一個區塊沒有結尾
+        blocks.append((lang, "\n".join(buf)))
+    py =[b for l, b in blocks if l in ("python", "py", "python3")]
+    if py:
+        return "\n\n".join(py)
+    plain = [b for l, b in blocks if l == ""]
+    return plain[-1] if plain else text
 
 
 def main():

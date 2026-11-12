@@ -19,6 +19,7 @@ import sys
 
 def main():
     exp, base, out = sys.argv[1:4]
+    exp = os.path.abspath(os.path.expanduser(exp))  # symlink 用絕對路徑，相對路徑會指錯地方
     pat = re.compile(re.escape(base) + r"_r(\d+)t(\d+)\.txt$")
     files = []
     for p in glob.glob(os.path.join(exp, base + "_r*t*.txt")):
@@ -39,8 +40,8 @@ def main():
                 block.append(line)
                 if line.startswith("rc="):
                     break
-        if not block:
-            print(f"警告：{os.path.basename(p)} 沒有結果段落（還在跑或被中止），跳過", file=sys.stderr)
+        if not block or not block[-1].startswith("rc="):
+            print(f"警告：{os.path.basename(p)} 沒有完整的結果段落（還在跑或被中止），跳過", file=sys.stderr)
             continue
         lines += block
         src = os.path.join(exp, "llama_logs", os.path.basename(p)[:-4], f"t{t}", "r1")
